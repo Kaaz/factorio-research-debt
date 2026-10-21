@@ -28,7 +28,7 @@ MIT
 
 ## Source / homepage
 
-(GitHub URL once the repository exists)
+https://github.com/Kaaz/factorio-research-debt
 
 ## Description (Markdown)
 
