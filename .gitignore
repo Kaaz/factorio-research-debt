@@ -5,3 +5,4 @@ dist/
 # client screenshots are ~2.5 MB each; regenerate with tests/gui_check.py
 tests/screenshots/
 creds.txt
+*.key
