@@ -1,0 +1,55 @@
+name: Release
+
+# Push a tag like v0.1.1 (matching the version in research-debt/info.json):
+#   - builds dist/research-debt_<version>.zip
+#   - creates a GitHub release with the zip attached
+#   - uploads the zip as a new release on the Factorio mod portal
+#   - pushes portal/summary.txt, description.md, faq.md and meta.json to the portal page
+# Needs the repository secret FACTORIO_API_KEY (usages: Upload Mods + Edit Mods).
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check tag matches info.json
+        run: |
+          VERSION=$(python -c "import json; print(json.load(open('research-debt/info.json'))['version'])")
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "info.json: $VERSION, tag: $TAG"
+          test "$VERSION" = "$TAG"
+
+      - name: Build zip
+        run: python build.py
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES=$(python - <<'EOF'
+          import re
+          txt = open('research-debt/changelog.txt', encoding='utf-8').read()
+          blocks = re.split(r'^-{20,}\n', txt, flags=re.M)
+          print(next(b for b in blocks if b.strip()).strip())
+          EOF
+          )
+          gh release create "$GITHUB_REF_NAME" dist/*.zip --title "Research Debt $GITHUB_REF_NAME" --notes "$NOTES"
+
+      - name: Mod portal release
+        env:
+          FACTORIO_API_KEY: ${{ secrets.FACTORIO_API_KEY }}
+        run: |
+          pip install requests
+          python tools/portal.py release
