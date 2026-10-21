@@ -1,7 +1,7 @@
 """Factorio mod portal client for this repository.
 
     python tools/portal.py publish   # first publication (zip + description, category, license, source)
-    python tools/portal.py upload    # add the current dist zip as a new release
+    python tools/portal.py upload    # add the dist zips (2.1 and 2.0 lines) as releases, skipping existing ones
     python tools/portal.py details   # push portal/summary.txt, description.md, faq.md, meta.json
     python tools/portal.py images    # upload dist/portal-images/*.png and set their order
     python tools/portal.py release   # upload + details (what the GitHub workflow runs)
@@ -29,9 +29,20 @@ def info():
     return json.loads((MOD_DIR / "info.json").read_text(encoding="utf-8"))
 
 
-def zip_path():
+def zip_path(line=None):
+    """dist zip for a Factorio line ("2.0", "2.1"); default: the line in info.json."""
     i = info()
+    if line and line != i["factorio_version"]:
+        version = f"{line}.{i['version'].split('.')[-1]}"
+        return ROOT / "dist" / f"factorio-{line}" / f"{i['name']}_{version}.zip"
     return ROOT / "dist" / f"{i['name']}_{i['version']}.zip"
+
+
+def portal_releases():
+    r = requests.get(f"https://mods.factorio.com/api/mods/{info()['name']}/full", timeout=30)
+    if r.status_code == 404:
+        return None
+    return [x["version"] for x in r.json().get("releases", [])]
 
 
 def load_key(key_file):
@@ -92,17 +103,27 @@ def cmd_publish(key, args):
     print("published:", body.get("url"))
 
 
-def cmd_upload(key, args):
+def upload_zip(key, zp):
     name = info()["name"]
-    zp = zip_path()
     if not zp.exists():
-        sys.exit(f"{zp} missing; run python build.py first")
+        sys.exit(f"{zp} missing; run python build.py --all first")
+    version = zp.stem.split("_", 1)[1]
+    existing = portal_releases() or []
+    if version in existing:
+        print("release", version, "already on the portal, skipping")
+        return
     r = requests.post(f"{BASE}/releases/init_upload", data={"mod": name}, headers=auth(key), timeout=60)
     upload_url = check(r, "init_upload")["upload_url"]
     with zp.open("rb") as f:
         r = requests.post(upload_url, files={"file": f}, timeout=300)
-    check(r, "release upload")
-    print("uploaded release", info()["version"], f"({zp.stat().st_size} bytes)")
+    check(r, f"release upload {zp.name}")
+    print("uploaded release", version, f"({zp.stat().st_size} bytes)")
+
+
+def cmd_upload(key, args):
+    lines = args.lines or [info()["factorio_version"], "2.0"]
+    for line in dict.fromkeys(lines):
+        upload_zip(key, zip_path(line))
 
 
 def cmd_details(key, args):
@@ -167,6 +188,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("command", choices=["publish", "upload", "details", "images", "release"])
     ap.add_argument("--key-file", default=None, help="file with the API key (ignored when FACTORIO_API_KEY is set)")
+    ap.add_argument("--lines", nargs="*", default=None, help='Factorio lines to upload (default: info.json line and 2.0)')
     args = ap.parse_args()
     key = load_key(args.key_file)
     {"publish": cmd_publish, "upload": cmd_upload, "details": cmd_details,

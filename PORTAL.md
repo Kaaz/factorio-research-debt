@@ -2,6 +2,9 @@
 
 The portal page is maintained from this repository, not by hand.
 
+Version scheme: 2.0.x for Factorio 2.0 (stable), 2.1.x for Factorio 2.1 (experimental), built from one source.
+Players only see the release that matches their game.
+
 ```
 portal/summary.txt      short text shown in listings (max 500 characters)
 portal/description.md   the mod page (Markdown)
@@ -24,17 +27,18 @@ Allowed values (from the Mod details API): category `tweaks`, `content`, `overha
 "ModPortal: Upload Mods", "ModPortal: Edit Mods" and, for the first publication, "ModPortal: Publish Mods".
 
 ```bash
-python build.py                                     # dist/research-debt_<version>.zip
+python build.py --all                               # dist/research-debt_2.1.x.zip and dist/factorio-2.0/research-debt_2.0.x.zip
 python tools/portal.py publish --key-file creds.txt # first time only: creates the mod on the portal
 python tools/portal.py details --key-file creds.txt # push summary, description, FAQ, category, tags, license, links
 python tools/portal.py images  --key-file creds.txt # upload the gallery images in order (replaces the gallery)
-python tools/portal.py upload  --key-file creds.txt # add the current zip as a new release
+python tools/portal.py upload  --key-file creds.txt # add both zips as releases (versions already on the portal are skipped)
 ```
 
 ## Releasing a new version
 
-1. Bump `version` in `research-debt/info.json` and add an entry to `research-debt/changelog.txt`.
-2. Commit, then tag and push: `git tag v0.1.1 && git push origin master v0.1.1`.
+1. Bump the patch number of `version` in `research-debt/info.json` (the source is the 2.1 line, e.g. 2.1.1;
+   the 2.0 zip becomes 2.0.1 automatically) and add an entry to `research-debt/changelog.txt`.
+2. Commit, then tag and push: `git tag v2.1.1 && git push origin master v2.1.1`.
 3. The GitHub workflow (`.github/workflows/release.yml`) builds the zip, creates a GitHub release with
    the changelog entry as notes, uploads the zip to the portal and pushes the texts from `portal/`.
    It needs the repository secret `FACTORIO_API_KEY` (Settings → Secrets and variables → Actions).

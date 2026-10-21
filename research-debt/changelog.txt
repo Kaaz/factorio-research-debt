@@ -1,5 +1,5 @@
 ---------------------------------------------------------------------------------------------------
-Version: 0.1.0
+Version: 2.1.0
 Date: 2026-10-21
   Features:
     - Every non-infinite technology adds debt; the global technology price multiplier follows it (linear or exponential).
@@ -17,3 +17,5 @@ Date: 2026-10-21
     - Default debt per technology is 0.1 (+10% research cost per technology in linear mode).
   Locale:
     - English and Dutch.
+  Info:
+    - Version scheme: 2.0.x for Factorio 2.0, 2.1.x for Factorio 2.1, same features.

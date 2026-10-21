@@ -74,6 +74,8 @@ class Env:
         info = json.loads((MOD_SRC / "info.json").read_text(encoding="utf-8"))
         for old in self.mods.glob("research-debt_*"):
             shutil.rmtree(old)
+        if self.line and self.line != info["factorio_version"]:
+            info["version"] = f"{self.line}.{info['version'].split('.')[-1]}"  # same scheme as build.py
         dst = self.mods / f"research-debt_{info['version']}"
         shutil.copytree(MOD_SRC, dst)
         if self.line and self.line != info["factorio_version"]:

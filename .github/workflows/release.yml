@@ -1,9 +1,9 @@
 name: Release
 
-# Push a tag like v0.1.1 (matching the version in research-debt/info.json):
-#   - builds dist/research-debt_<version>.zip
+# Push a tag like v2.1.1 (matching the version in research-debt/info.json, the 2.1 line):
+#   - builds the 2.1 and 2.0 zips (2.1.x and 2.0.x, same source)
 #   - creates a GitHub release with the zip attached
-#   - uploads the zip as a new release on the Factorio mod portal
+#   - uploads both zips as releases on the Factorio mod portal (existing versions are skipped)
 #   - pushes portal/summary.txt, description.md, faq.md and meta.json to the portal page
 # Needs the repository secret FACTORIO_API_KEY (usages: Upload Mods + Edit Mods).
 
@@ -32,7 +32,7 @@ jobs:
           test "$VERSION" = "$TAG"
 
       - name: Build zip
-        run: python build.py
+        run: python build.py --all
 
       - name: GitHub release
         env:
@@ -45,11 +45,12 @@ jobs:
           print(next(b for b in blocks if b.strip()).strip())
           EOF
           )
-          gh release create "$GITHUB_REF_NAME" dist/*.zip --title "Research Debt $GITHUB_REF_NAME" --notes "$NOTES"
+          gh release create "$GITHUB_REF_NAME" dist/*.zip dist/factorio-2.0/*.zip --title "Research Debt $GITHUB_REF_NAME" --notes "$NOTES"
 
       - name: Mod portal release
         env:
           FACTORIO_API_KEY: ${{ secrets.FACTORIO_API_KEY }}
         run: |
+          if [ -z "$FACTORIO_API_KEY" ]; then echo "FACTORIO_API_KEY secret not set, skipping the mod portal"; exit 0; fi
           pip install requests
           python tools/portal.py release
