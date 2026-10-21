@@ -10,14 +10,13 @@ Research Debt
 
 ## Summary (short, shown in listings)
 
-Every technology you research makes the next one more expensive. Pay the debt back with a dedicated
-infinite research, by sacrificing items in an Archive, or by trading lab speed, enemy evolution or a
-technology you no longer need. Infinite techs are never affected. An in-game window always shows why
-research costs what it costs and what you can do about it. Works with and without Space Age.
+Research gets more expensive the more you research. Pay the debt off again with a special infinite
+tech, by feeding stuff to an Archive, or by giving something else up (slower labs, higher evolution,
+a tech you don't need anymore). Infinite techs are left alone. Works with and without Space Age.
 
 ## Category
 
-Tweaks (it changes research cost rules and adds a few supporting prototypes; not an overhaul)
+Tweaks
 
 ## Tags
 
@@ -33,80 +32,75 @@ MIT
 
 ## Description (Markdown)
 
-**Research Debt** turns research into an economy. Every non-infinite technology you finish adds *debt*,
-and the global technology price multiplier follows the debt: the more you know, the more the next
-discovery costs. The debt can be paid back, so the question is no longer only *what* to research but
-*when*, and what you are willing to give up for it.
+I always felt that research in Factorio is a bit of a no-brainer: you queue up everything, you build
+more labs, done. This mod makes you think about it. Every technology you finish adds "debt", and the
+research cost multiplier of the map follows that debt. So after 40 techs everything costs roughly
+twice as much, after 80 three times, and so on. Infinite techs (mining productivity, damage upgrades,
+the Space Age productivity ones) don't care about any of this, they cost what they always cost and
+don't add debt either.
 
-### What raises the cost
+The point is that you can pay the debt off, and every way of doing that costs you something else.
 
-- Every non-infinite technology adds debt, scaled by its science tier: red-only techs add 0.05,
-  green 0.10, blue 0.15, purple/yellow 0.20, space and planet packs 0.25, cryogenic 0.30, promethium 0.40
-  (all configurable).
-- Linear mode (default): multiplier = base × (1 + debt). Exponential mode: every technology multiplies
-  the cost by (1 + step).
-- **Infinite technologies** (mining productivity, weapon damage, research productivity, from any mod)
-  ignore the multiplier completely and never add debt.
+**Knowledge Consolidation** is an infinite research that removes a chunk of debt per level. The
+multiplier doesn't touch it, but every level is 1.5x the price of the last one, so you can't just
+spam it forever.
 
-### How to pay it back
+**The Archive** is a chest. Put valuable stuff in it (circuits, engines, LDS, rocket fuel, science
+packs if you really want, the Space Age intermediates...) and it eats them and lowers the debt.
+Better quality is worth more. The catch: the more you have archived over the whole game, the less
+every item is worth, so it's not a free dump for your overflow. Every 15 minutes it also asks for a
+specific item you can currently craft and pays triple for that one. The next three requests are
+visible so you can set up production ahead of time.
 
-- **Knowledge Consolidation** – an infinite research that removes debt. Immune to the multiplier,
-  but every level costs 1.5× the previous one.
-- **Archive** – a chest that permanently consumes valuable items (circuits, engines, science packs,
-  Space Age intermediates…). Higher quality is worth more; the more you have archived in total, the
-  less each item is worth. Every 15 minutes the Archive *requests* a specific craftable item at 3×
-  value, and shows the next three requests so you can plan production.
-- **Trades** – make your labs slower (reversible), raise enemy evolution on your current planet
-  (not reversible), or forget a technology nothing else depends on.
-- **Debt-free bonus** – while your debt is exactly zero, all labs run 20% faster.
+**Trades.** Make your labs 10% slower for a bit of debt (you can undo that again). Raise the
+evolution factor on your current planet (you can't undo that). Or forget a technology that nothing
+else depends on: you lose the recipes, you get its debt back.
 
-### Always know why
+And if you ever get the debt down to zero, your labs run 20% faster until the next tech ruins it.
 
-Press **Ctrl+K** (or use the shortcut-bar button) for the Research Debt window: the current multiplier
-and the formula behind it, a breakdown of where the debt came from, one card per way to lower it with
-live status and action buttons, and a log of recent changes. Opening any lab shows a compact panel with
-the same numbers. Optional HUD button at the top of the screen.
+Ctrl+K opens a window that explains all of this in game: the current multiplier and where it comes
+from, how much each option would lower it, buttons for the trades, and a log of what happened.
+Opening a lab shows a small panel with the same numbers. There's an optional button at the top of
+the screen too, off by default because I found it annoying.
 
-### Details
+Some things worth knowing:
 
-- Factorio 2.1, with or without Space Age / Quality.
-- Adding the mod to an existing save recalculates the debt from the technologies already researched.
-- Multiplayer: the multiplier is global, so every force's research raises it for everyone. Lab-speed
-  trades are per force. Not yet tested in a real multiplayer session: feedback welcome.
-- Not compatible with other mods that write the technology price multiplier.
-- Everything is tunable: startup settings (step, growth mode, tier scaling, trigger techs, Archive,
-  trades), map settings (max/min multiplier, debt-free bonus, request interval, chat messages) and
-  one per-player setting (HUD). Balance tables live in `scripts/values.lua`, `scripts/tiers.lua` and
-  `scripts/trades.lua`.
-- Commands: `/rd-status`, `/rd-recalc`, `/rd-reset`, `/rd-gui`. Remote interface `research-debt`
-  for other mods.
-- Languages: English, Dutch.
+- Red-only techs add half a step of debt, blue 1.5, purple/yellow 2, planet science 2.5, cryogenic 3,
+  promethium 4. Can be turned off if you want every tech to count the same.
+- Adding it to an existing save works, the debt is calculated from what you already researched. Don't
+  panic when you open the save and see x7, that's what you'd have had anyway. `/rd-reset` zeroes it
+  if you'd rather start fresh.
+- Running research keeps its progress when the multiplier changes, only the remaining part grows.
+- The multiplier is global, so in multiplayer every force pays for every force's research. I haven't
+  played it in multiplayer yet, I'd like to hear how that goes.
+- Won't play nice with other mods that also set the technology price multiplier.
+- Pretty much every number is a setting, and the item values are in a plain Lua table if you want
+  to tune them.
+- Commands: /rd-status, /rd-recalc, /rd-reset, /rd-gui. There's a remote interface for mod authors.
+- English and Dutch.
 
-### Feedback
-
-Balance numbers are first guesses from a solo playtest. If the curve feels too steep or too flat,
-or a trade is never worth it, say so: this mod lives on feedback.
+The balance is a first attempt based on my own games. If something feels off, too steep, too easy,
+a trade that's never worth it, let me know in the discussion.
 
 ## FAQ
 
 **Does it make infinite research more expensive?**
-No. Infinite technologies ignore the multiplier entirely and never add debt.
+No. They ignore the multiplier and don't add debt.
 
-**I added the mod to my existing save and research is suddenly ×7.**
-The debt was recalculated from everything you had already researched. Either accept it (your first
-goal is now to pay it down), lower "Maximum research cost multiplier" in the map settings, or run
-`/rd-reset` as admin to start at zero.
+**I added the mod to my existing save and research is suddenly x7.**
+That's the debt for everything you already researched. Either pay it down, lower the maximum
+multiplier in the map settings, or /rd-reset (admin) to start at zero.
 
-**The multiplier changed while a research was running. Did I lose progress?**
-No. Finished research units are kept; only the remaining fraction grows.
+**The multiplier went up while something was researching. Did I lose progress?**
+No. Units already researched stay, only the remaining part gets bigger.
 
-**Can I see the multiplier in the technology screen?**
-Factorio does not let mods draw there. The tech screen already shows the increased unit counts; the
-*why* is in the Research Debt window (Ctrl+K) and the lab panel.
+**Can you show the multiplier in the technology screen?**
+I'd love to, but mods can't put anything there. The tech screen does show the increased unit counts
+already. The why is in the Ctrl+K window and in the lab GUI.
 
-**What about multiplayer / PvP?**
-The multiplier is global. All forces build debt and all forces pay the price. Lab trades, requests and
-the debt-free bonus are per force where that makes sense.
+**Multiplayer / PvP?**
+One global multiplier for everybody. Lab trades, requests and the debt-free bonus are per force.
+Untested in real multiplayer so far.
 
 ## Images
 
