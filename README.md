@@ -1,4 +1,4 @@
-# Research Debt (Kennisschuld) – Factorio 2.1 mod
+# Research Debt – Factorio 2.1 mod
 
 Every non-infinite technology you research adds *debt*. The global technology price multiplier
 follows the debt, so research gets more expensive the more you know. Infinite technologies are
