@@ -1,51 +1,35 @@
-# Research Debt – Factorio 2.1 mod
+# Research Debt
 
-Every non-infinite technology you research adds *debt*. The global technology price multiplier
-follows the debt, so research gets more expensive the more you know. Infinite technologies are
-never affected and never add debt. You pay debt back through a dedicated infinite research, by
-sacrificing items in an Archive, or by trading something else you value (lab speed, enemy
-evolution, a technology you no longer need). The in-game window (Ctrl+K) always shows why the
-multiplier is what it is and what you can do about it.
+A Factorio 2.1 mod that makes research cost something.
 
-Works with and without Space Age. Requires Factorio 2.1.
+I always felt research in Factorio is a bit of a no-brainer: queue everything, build more labs,
+done. With this mod every technology you finish adds *debt*, and the research cost multiplier of
+the map follows that debt. After 40 techs everything costs roughly twice as much, after 80 three
+times. Infinite techs (mining productivity, damage upgrades, the Space Age productivity ones) are
+left alone completely: they cost what they always cost and don't add debt either.
 
-## Layout
+The point is that you can pay the debt off again, and every way of doing that costs you something
+else. Ctrl+K opens a window in game that tells you where the debt came from and what each option
+would do. Works with and without Space Age.
 
-```
-research-debt/            the mod (copy or symlink into your mods folder as research-debt_0.1.0)
-  info.json
-  settings.lua            startup + map + per-player settings
-  data.lua                Knowledge Consolidation tech, Archive entity/item/recipe/tech, shortcut + hotkey
-  data-final-fixes.lua    ignore_tech_cost_multiplier on every infinite tech (any mod)
-  control.lua             event wiring, commands, remote interface
-  scripts/debt.lua        the model: storage.debt -> multiplier (single writer)
-  scripts/values.lua      Archive balance table (item points, quality bonus, diminishing returns)
-  scripts/archive.lua     Archive tracking and processing
-  scripts/trades.lua      lab speed / evolution / forget trades
-  scripts/gui.lua         Research Debt window + HUD
-  locale/en, locale/nl
-tests/run.py              end-to-end tests against a real headless server (RCON)
-tests/phases.py           phase 2/3/trades tests
-tests/rcon.py             tiny RCON client (no dependencies)
-NOTES.md                  verified API behaviour and design decisions
-```
+Latest zip: `dist/research-debt_0.1.0.zip` (run `python build.py` to rebuild it). Or copy the
+`research-debt` folder into your mods folder as `research-debt_0.1.0`.
 
-## The model
+## How it works
 
-```
-debt      >= 0, one number in storage.debt
-linear:      multiplier = base × (1 + debt)
-exponential: multiplier = base × (1 + step) ^ (debt / step)
-clamped to [base × rd-min-multiplier, rd-max-multiplier] and to Factorio's [0.001, 100000]
-```
+One number, `storage.debt`, never below zero. Linear mode (default): multiplier = base × (1 + debt).
+Exponential mode: every tech multiplies the cost by (1 + step). The result is clamped to the limits
+from the map settings and to what Factorio allows (0.001 to 100000). `base` is whatever the map's
+technology price multiplier was when the mod first loaded in that save, so a map that started at ×2
+stays ×2 at zero debt.
 
-`base` is the map's technology price multiplier at the moment the mod is first loaded in that save.
-Every change goes through one function (`Debt.add`) which logs `debt a -> b (+d) reason=... | multiplier x -> y`
-to `factorio-current.log`.
+Every change goes through one function (`Debt.add`) that writes a line to `factorio-current.log`:
+`debt a -> b (+d) reason=... | multiplier x -> y`. Handy when something looks off.
 
-### Science tiers (default on, `rd-tier-scaling`)
+### What adds debt
 
-The highest science pack a technology needs sets its tier; the step is multiplied by the tier factor:
+A technology adds `step × tier factor`, step being 0.1 by default. The tier is the highest science
+pack the tech needs:
 
 | Tier | Packs | Factor | Debt at step 0.1 |
 |---|---|---|---|
@@ -57,123 +41,129 @@ The highest science pack a technology needs sets its tier; the step is multiplie
 | 6 | cryogenic | 3.0 | 0.30 |
 | 7 | promethium | 4.0 | 0.40 |
 
-Packs from other mods fall back to "number of distinct packs" as the tier. Table in `scripts/tiers.lua`.
-
-### Debt-free bonus (`rd-debt-free-bonus`, default 0.2)
-
-While the debt is exactly zero, every force gets +20% lab speed. Any technology that adds debt ends the
-bonus until the debt is paid off again. The window, the HUD tooltip and the lab panel show the state.
-
-### Archive requests (`rd-request-interval`, default 15 minutes)
-
-Every interval the Archive asks for a specific item from the value table that some force can currently
-craft (random, never the same twice in a row). Delivering the requested amount to any Archive counts at
-3× value; items beyond the amount count normally. A fulfilled request schedules the next one an interval
-later; an unfulfilled one is replaced when it expires. The archive card shows the request, progress, time
-left and what the remaining delivery is worth, plus the next three requests so you can plan production.
-Queued items that become uncraftable (forgotten technology) are skipped. 0 disables requests. Numbers in `Values.Balance`
-(`request_bonus`, `request_points`, `request_min`, `request_max`).
-
-### What adds debt
-
-| Event | Debt |
-|---|---|
-| Finishing a non-infinite technology (any force; scripted research counts too) | `+step × tier factor` (step default 0.1) |
-| Finishing a trigger technology (no science packs) | `+step` only if `rd-count-trigger-techs` is on |
-| Finishing an infinite technology level | 0 |
-| Finishing one of this mod's technologies | 0 |
-| Undoing a lab-speed trade | `+0.25` |
+Packs from other mods fall back to "number of different packs" as the tier. Tier scaling can be
+switched off, then every tech is one step. Infinite techs, trigger techs (no science packs, unless
+you enable them) and this mod's own techs add nothing. Research done by script counts like normal
+research, which is also what the recalculation uses when you add the mod to an existing save.
 
 ### What removes debt
 
-| Method | Effect | Trade-off |
-|---|---|---|
-| **Knowledge Consolidation** (infinite tech, needs chemical science) | `-0.25` per level | 500 × 1.5^(L-1) units of red/green/blue; never affected by the multiplier |
-| **Archive** (chest, unlocked by its own cheap tech) | item points × quality × efficiency × 0.001 | items are destroyed; efficiency = 1 / (1 + total points ever archived / 1000) |
-| **Slow labs** (per force, max 5 steps) | `-0.25` per 10% lab speed | reversible at the same rate |
-| **Feed the enemy** (+5% evolution on your current surface) | `-0.25` | irreversible, unavailable at ≥95% evolution |
-| **Forget a technology** nothing else depends on | `-step × its tier factor` | you lose its recipes/bonuses and must pay its full cost again |
+**Knowledge Consolidation.** Infinite tech, needs chemical science, removes 0.25 per level. The
+multiplier doesn't touch it, but every level costs 1.5× the previous one (500, 750, 1125, ...).
 
-All numbers are in one place: `settings.lua` (step, consolidation value, limits),
-`scripts/values.lua` (`Values.Balance`, `Values.items`) and `scripts/trades.lua` (`Trades.Balance`).
+**The Archive.** A chest with its own cheap tech. Items with a value in `scripts/values.lua` are
+eaten once per second and lower the debt; the rest stays in the chest. Quality counts
+(uncommon ×1.6 up to legendary ×4). Diminishing returns: the value of every extra point is
+`1 / (1 + total points ever archived / 1000)`, so the Archive is never a free dump for overflow.
+Science packs are deliberately cheap so that sacrificing science is never the smart route.
 
-## In-game UI
+Every 15 minutes the Archive requests a specific item you can currently craft and pays 3× for the
+requested amount. The next three requests are shown in advance so you can set up production. A
+fulfilled request schedules the next one, an expired one is replaced on the spot, and queued items
+that became uncraftable (you forgot the tech) are skipped.
 
-- **HUD** button at the top (off by default): `Research ×2.35` (orange while there is debt, green at base). Hover for the
-  summary, click to open the window. Toggle with the checkbox at the bottom of the window or the per-player setting `rd-show-hud`.
-- **Lab panel**: opening any lab shows a side panel with the current multiplier, the debt and a Details button.
-  The technology screen and research queue cannot be extended by mods (no GUI anchor exists for them).
-- **Window** (Ctrl+K, the shortcut-bar button, `/rd-gui`, or the HUD):
-  1. the current multiplier, the formula that produces it, and what the next technology will do;
-  2. *Why is it this high?* – a breakdown: technologies × step, consolidation, archive, trades, total;
-  3. *How to lower it* – one card per method with live status (locked / available / in queue / researching …),
-     concrete numbers ("one technology step ≈ 53 processing units right now"), and action buttons
-     (queue consolidation, show the value table, slow/restore labs, feed the enemy, forget a technology);
-  4. what is never affected;
-  5. the last 8 changes with timestamps.
-- Chat messages on every debt change (`rd-chat-notifications`).
+**Trades.** Make your force's labs 10% slower for 0.25 debt, at most five times, reversible at the
+same rate. Raise enemy evolution on your current surface by 5% for 0.25 debt, not reversible, not
+available at 95%+. Or forget a technology nothing else depends on: you lose its recipes and bonuses
+and get back exactly the debt it added.
 
-## Commands and remote interface
+**Debt-free bonus.** While the debt is exactly zero all labs run 20% faster. The next tech that
+adds debt ends it.
+
+All the numbers live in `settings.lua`, `scripts/values.lua` (`Values.Balance`, `Values.items`),
+`scripts/tiers.lua` and `scripts/trades.lua`.
+
+## In game
+
+- **Ctrl+K** (or the shortcut bar button, or `/rd-gui`): the window. Current multiplier with the
+  formula behind it, what the next tech will do, a breakdown of where the debt came from, the tier
+  table, one card per way to lower it with live status and buttons, what is never affected, and
+  the last 8 changes.
+- **Lab panel**: open any lab and a small panel shows the multiplier, the debt and a Details
+  button. The technology screen and the research queue can't be extended by mods, this is the
+  closest I could get.
+- **HUD button** at the top, off by default (it got on my nerves). Checkbox at the bottom of the
+  window or the per-player setting.
+- Chat messages on every debt change, can be turned off.
+
+## Commands
 
 ```
 /rd-status            debt, base, multiplier, limits, counters
 /rd-recalc            (admin) recount researched technologies and archives
-/rd-reset             (admin) debt to zero
+/rd-reset             (admin) debt to zero, trades undone
 /rd-gui               open/close the window
 ```
 
-`remote.call("research-debt", ...)`: `status()`, `add_debt(x, reason)`, `reset()`, `recalculate()`,
-`set_base(x)`, `counts(tech_name)`, `history()`, `archive_value(item, quality)`, `archive_preview(points)`,
-`archive_process_now()`, `balance()`, `trade_lab(force)`, `trade_lab_undo(force)`,
-`trade_evolution(force, surface_index)`, `forgettable(force)`, `forget(force, tech)`, `trades_state(force)`,
-`open_gui(player_index)`.
+For mod authors there's `remote.call("research-debt", ...)` with `status()`, `add_debt(x, reason)`,
+`reset()`, `recalculate()`, `set_base(x)`, `counts(tech)`, `step_for(tech)`, `history()`,
+`archive_value(item, quality)`, `balance()`, the trades (`trade_lab`, `trade_lab_undo`,
+`trade_evolution`, `forgettable`, `forget`, `trades_state`), the requests (`request`,
+`request_queue`, `new_request`) and `open_gui(player_index)`. See `control.lua`.
 
-## Compatibility notes
+## Good to know
 
-- The multiplier is global. In PvP every force's research raises it for all forces. Lab trades are per force.
-- Other mods that write `technology_price_multiplier` are not supported; the mod logs a warning when the
-  map's base multiplier is not 1 and re-applies its own value every second (watchdog).
-- Infinite technologies from other mods are handled automatically in `data-final-fixes.lua`.
-- Research in progress keeps its completed units when the multiplier changes; only the remaining fraction grows.
-- Adding the mod to an existing save: debt = (researched, counting technologies of all forces) × step.
+- The multiplier is global. In PvP every force's research raises it for everyone. Lab trades,
+  requests and the bonus are per force where that makes sense. I haven't played it in multiplayer
+  yet.
+- Other mods that also write `technology_price_multiplier` won't get along with this one. The mod
+  warns in the log when the map's base multiplier isn't 1 and re-applies its own value every second.
+- Infinite techs from other mods are picked up automatically in `data-final-fixes.lua`.
+- Research that is running keeps its finished units when the multiplier changes; only the rest grows.
+- Adding the mod to an existing save: the debt is calculated from everything already researched.
 
-## Testing
+## Repository layout
+
+```
+research-debt/            the mod
+  settings.lua            startup, map and per-player settings
+  data.lua                Knowledge Consolidation, Archive entity/item/recipe/tech, shortcut, hotkey
+  data-final-fixes.lua    ignore_tech_cost_multiplier on every infinite tech
+  control.lua             events, commands, remote interface
+  scripts/debt.lua        the model (the only place that writes the multiplier)
+  scripts/tiers.lua       science tiers
+  scripts/values.lua      Archive balance table
+  scripts/archive.lua     Archive tracking and processing
+  scripts/requests.lua    Archive requests
+  scripts/trades.lua      lab speed / evolution / forget
+  scripts/bonus.lua       debt-free bonus
+  scripts/gui.lua         window, HUD, lab panel
+  locale/en, locale/nl
+tests/                    see below
+build.py                  builds dist/research-debt_<version>.zip
+NOTES.md                  what I verified against the API and why things are the way they are
+PORTAL.md                 texts and images for the mod portal page
+```
+
+## Tests
 
 ```bash
 python tests/run.py
 ```
 
-Creates an isolated Factorio data folder in `%LOCALAPPDATA%\Temp\rd-test`, copies the mod there, creates a
-save, starts a headless server with RCON and runs ~95 checks: phase 1 (rise, infinite immunity, reverse,
-clamps, recalculation, running research), phase 2 (consolidation), phase 3 (archive incl. quality and
-diminishing returns), trades, save/restart persistence, adding the mod to an existing save, and the same
-again without Space Age. Options: `--no-space-age`, `--only phase1 phase2 ...`, `--env PATH`, `--factorio PATH`.
-
-The Steam build of Factorio is used directly; Steam may briefly show you as "playing Factorio".
-Your own saves, mods and settings in `%APPDATA%\Factorio` are not touched.
-
-### Automated GUI check (opens the real client)
+Spins up a real headless Factorio server in `%LOCALAPPDATA%\Temp\rd-test` (own config, mods and
+saves, your `%APPDATA%\Factorio` is not touched), talks to it over RCON and runs about 135 checks:
+the multiplier going up, infinite techs being immune, reversing, clamps, recalculation, research in
+progress, consolidation, the Archive with quality and diminishing returns, requests, trades, tiers,
+the bonus, save/restart, adding the mod to an existing save, and most of it again without Space Age.
+Uses the Steam build directly, so Steam may show you as playing. Options: `--no-space-age`,
+`--only phase1 trades ...`, `--env PATH`, `--factorio PATH`.
 
 ```bash
 python tests/gui_check.py
 ```
 
-Creates `%LOCALAPPDATA%\Temp\rd-test-gui`, adds the tiny helper mod from `tests/selftest-mod`, starts the
-Factorio client windowed on a fresh save, opens the window, expands the value table and the log, takes
-screenshots (`rd-test-gui/data/script-output/rd-gui-*.png`) and closes the client again. A Factorio window
-appears on screen for about half a minute.
+Starts the actual client (windowed, English) on a throwaway save with a tiny helper mod that opens
+the window, expands things, scrolls, opens a lab and takes screenshots into
+`%LOCALAPPDATA%\Temp\rd-test-gui\data\script-output`. A Factorio window pops up for about half a
+minute. `tests/portal_images.ps1` crops those into the images for the portal page.
 
-### Manual GUI check
-
-The window cannot be tested headless. Start the client on the test save (same isolated config):
+To poke at it by hand on the test save:
 
 ```bash
 "/c/Program Files (x86)/Steam/steamapps/common/Factorio/bin/x64/factorio.exe" -c "$LOCALAPPDATA/Temp/rd-test/config/config.ini" --mod-directory "$LOCALAPPDATA/Temp/rd-test/data/mods" --load-game "$LOCALAPPDATA/Temp/rd-test/data/saves/test.zip"
 ```
 
-Then press Ctrl+K, research something, build an Archive (`/c game.player.insert{name="rd-archive"}`) and watch
-the window and HUD update.
-
 ## License
 
-MIT, see [LICENSE](LICENSE). The same file ships inside the mod zip.
+MIT, see [LICENSE](LICENSE).
