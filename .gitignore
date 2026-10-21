@@ -1,0 +1,6 @@
+__pycache__/
+tests/last-run.log
+tests/gui-check.log
+dist/
+# client screenshots are ~2.5 MB each; regenerate with tests/gui_check.py
+tests/screenshots/

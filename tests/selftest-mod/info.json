@@ -1,0 +1,8 @@
+{
+  "name": "rd-gui-selftest",
+  "version": "0.1.0",
+  "title": "Research Debt GUI self-test",
+  "author": "tests",
+  "factorio_version": "2.1",
+  "dependencies": ["research-debt"]
+}

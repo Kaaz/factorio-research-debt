@@ -1,0 +1,9 @@
+{
+  "name": "research-debt",
+  "version": "0.1.0",
+  "title": "Research Debt",
+  "author": "Maik",
+  "factorio_version": "2.1",
+  "description": "Every non-infinite technology you research raises a global research cost multiplier. Pay the debt back through Knowledge Consolidation research or by sacrificing items in an Archive.",
+  "dependencies": ["base >= 2.1", "? space-age", "? quality"]
+}

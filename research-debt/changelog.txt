@@ -1,0 +1,19 @@
+---------------------------------------------------------------------------------------------------
+Version: 0.1.0
+Date: 2026-10-21
+  Features:
+    - Every non-infinite technology adds debt; the global technology price multiplier follows it (linear or exponential).
+    - Infinite technologies (from any mod) ignore the multiplier and never add debt.
+    - Knowledge Consolidation: infinite research that removes debt, with escalating cost and immune to the multiplier.
+    - Archive: a chest that consumes valuable items (quality-aware, diminishing returns) to pay off debt.
+    - Archive requests: every 15 minutes the Archive asks for a craftable item at 3x value; the next three requests are shown in advance.
+    - Trades: slow down labs, raise enemy evolution, or forget a technology in exchange for debt.
+    - Research Debt window (Ctrl+K / shortcut bar / HUD button) explaining the multiplier, its breakdown and every way to lower it.
+    - Commands /rd-status, /rd-recalc, /rd-reset, /rd-gui and a remote interface "research-debt".
+    - Adding the mod to an existing save recalculates debt from the technologies already researched.
+  Balancing:
+    - Debt per technology scales with its science tier (red x0.5 ... promethium x4), startup setting rd-tier-scaling.
+    - Debt-free bonus: +20% lab speed for every force while the debt is zero (map setting rd-debt-free-bonus).
+    - Default debt per technology is 0.1 (+10% research cost per technology in linear mode).
+  Locale:
+    - English and Dutch.
