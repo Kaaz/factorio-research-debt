@@ -140,3 +140,15 @@ Everything below was checked against the bundled docs (`Factorio/doc-html/runtim
 - Observed once in the client self-test: calling `scroll_to_bottom()` and rebuilding the scroll pane
   content in the same tick froze the client (no log, no crash). The mod never does that itself (players
   scroll with the mouse); the self-test now does the two in separate ticks.
+
+## Factorio 2.0 (stable) support (2026-10-21)
+
+- 2.1 is the experimental line, 2.0.77 the stable one. A mod zip serves exactly one line (`factorio_version`),
+  so `build.py --factorio 2.0` writes a second zip with `factorio_version = "2.0"` and `base >= 2.0` from the
+  same source; nothing else differs. Every API the mod uses exists in the 2.0.77 docs.
+- Tested on 2.0.77 with the free Linux headless server inside WSL (`~/factorio-2.0/factorio`, includes
+  space-age, quality and elevated-rails; the recycler mod only exists from 2.1):
+  `wsl python3 tests/run.py --factorio ~/factorio-2.0/factorio/bin/x64/factorio --env /tmp/rd-test-2.0 --line 2.0`
+  → 136/136, identical to 2.1.23.
+- The runner now sets `read-data=__PATH__executable__/../../data`; `__PATH__system-read-data__` points to
+  /usr/share/factorio on Linux.

@@ -53,7 +53,7 @@ class Env:
         for d in (self.mods, self.saves, self.config.parent):
             d.mkdir(parents=True, exist_ok=True)
         self.config.write_text(
-            "[path]\nread-data=__PATH__system-read-data__\n"
+            "[path]\nread-data=__PATH__executable__/../../data\n"  # Steam install and headless tarball alike
             f"write-data={self.data.as_posix()}\n", encoding="utf-8")
         self.server_settings.write_text(json.dumps({
             "name": "research-debt test", "description": "", "tags": [], "max_players": 0,
@@ -80,13 +80,14 @@ class Env:
             import re
             info["factorio_version"] = self.line
             info["dependencies"] = [re.sub(r"^base\s*>=\s*[\d.]+", f"base >= {self.line}", d) for d in info["dependencies"]]
-            (dst / "info.json").write_text(json.dumps(info, indent=2) + "
-", encoding="utf-8")
+            (dst / "info.json").write_text(json.dumps(info, indent=2) + "\n", encoding="utf-8")
 
     def write_mod_list(self, mod_enabled=True):
         mods = [{"name": "base", "enabled": True}]
+        data_dir = self.factorio.parent.parent.parent / "data"
         for name in ("space-age", "quality", "elevated-rails", "recycler"):
-            mods.append({"name": name, "enabled": self.space_age})
+            if (data_dir / name).exists():  # recycler only exists from 2.1 on
+                mods.append({"name": name, "enabled": self.space_age})
         mods.append({"name": "research-debt", "enabled": mod_enabled})
         (self.mods / "mod-list.json").write_text(json.dumps({"mods": mods}, indent=1), encoding="utf-8")
 

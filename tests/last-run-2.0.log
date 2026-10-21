@@ -1,0 +1,173 @@
+Factorio: /home/maik/factorio-2.0/factorio/bin/x64/factorio
+Env: /tmp/rd-test-2.0
+Space Age: True
+Game 2.0.77, mods: base 2.0.77, elevated-rails 2.0.77, quality 2.0.77, space-age 2.0.77, research-debt 0.1.0
+  PASS  mod loaded
+
+== Phase 1: debt rises with research ==
+  PASS  fresh save: debt is 0   [got 0.000000, want 0.000000]
+  PASS  fresh save: multiplier == base   [got 1.000000, want 1.000000]
+  PASS  found an infinite technology   [mining-productivity-3]
+  PASS  mining-productivity-3 is infinite and does not count   [max_level=4294967295]
+  PASS  trigger tech steel-axe does not count (default setting)
+  PASS  logistics counts
+  PASS  automation (vanilla ignore_tech_cost_multiplier) still counts
+  INFO  7 of 10 techs count in this mod set, tier-weighted debt 0.400
+  PASS  7 techs: debt == sum of tier steps   [got 0.400000, want 0.400000]
+  PASS  multiplier == base*(1+debt)   [got 1.400000, want 1.400000]
+  PASS  stats.techs_counted matches   [7]
+  PASS  infinite tech cost unchanged   [1000 -> 1000]
+  PASS  normal tech cost scaled by multiplier   [100 -> 140 (mult 1.400)]
+  PASS  researching an infinite tech level adds no debt   [got 0.400000, want 0.400000]
+  PASS  infinite tech level increased
+  INFO  mining-productivity-3 level 3 -> 4, next level costs 2000 units
+  PASS  reversing a tech removes its own step   [got 0.350000, want 0.350000]
+  PASS  reversed counter
+  PASS  max-multiplier setting clamps   [got 1.200000, want 1.200000]
+  PASS  clamped status reports raw > actual
+  PASS  clamp released   [got 1.400000, want 1.400000]
+  PASS  watchdog restores the multiplier after external write   [got 1.400000, want 1.400000]
+  PASS  debt never negative   [got 0.000000, want 0.000000]
+  PASS  multiplier never below base*min   [got 1.000000, want 1.000000]
+  PASS  recalculate restores debt from researched techs   [got 0.400000, want 0.400000]
+  INFO  in-progress research: progress 0.500 -> 0.292, units 140 -> 240
+  PASS  in-progress research still active after multiplier change
+  PASS  /rd-status prints   [[Research Debt] debt=0.4000 base=1.0000 multiplier=1.4000 (raw 1.4000, limits 1.000..50.000) mode=linear step=0.100 | te]
+
+== Phase 2: Knowledge Consolidation ==
+  PASS  consolidation tech exists, is infinite and never counts
+  PASS  consolidation ignores the price multiplier
+  PASS  level 1 costs 500 units regardless of multiplier   [cost=500]
+  PASS  level 1 removes X debt   [got 1.750000, want 1.750000]
+  PASS  stats.consolidation_levels == 1
+  PASS  multiplier follows   [got 2.750000, want 2.750000]
+  PASS  level 2 costs more than level 1 (750)   [level=2 cost=750]
+  PASS  consolidation never pushes debt below 0   [got 0.000000, want 0.000000]
+  PASS  multiplier never below base   [got 1.000000, want 1.000000]
+  PASS  normal research still adds its step after consolidation   [got 0.050000, want 0.050000]
+
+== Phase 3: Archive ==
+  PASS  archive entity exists
+  PASS  archive recipe/item/tech exist
+  PASS  archive tech does not count as debt
+  PASS  script-built archive is registered   [archives=1]
+  PASS  items without value are not consumed   [left=50]
+  PASS  no debt change from valueless items   [got 3.000000, want 3.000000]
+  PASS  processing-unit has a value   [1]
+  PASS  first offering reduces debt by expected amount   [got 0.095310, want 0.095310]
+  PASS  offered items consumed
+  PASS  stats.archive_items == 100
+  PASS  second offering matches curve   [got 0.087011, want 0.087011]
+  PASS  second offering yields less than first   [0.09531 -> 0.08701]
+  PASS  rare quality is worth more   [1 -> 2.2]
+  PASS  rare items reduce debt by quality-adjusted amount   [got 0.018167, want 0.018167]
+  PASS  destroyed archive is unregistered   [archives=0]
+  PASS  stale archive handle cleaned up on sweep   [archives=0]
+
+== GUI: not implemented yet ==
+
+== Trades: lab speed, evolution, forgetting ==
+  PASS  lab trade accepted
+  PASS  lab trade: modifier -0.10   [got -0.100000, want -0.100000]
+  PASS  lab trade: debt -0.25   [got 1.750000, want 1.750000]
+  PASS  lab trade refused after 5 steps
+  PASS  lab trade: modifier -0.50 at max   [got -0.500000, want -0.500000]
+  PASS  lab trade: debt -1.25 total   [got 0.750000, want 0.750000]
+  PASS  lab penalty survives reset_technology_effects   [got -0.500000, want -0.500000]
+  PASS  lab undo accepted
+  PASS  lab undo: modifier -0.40   [got -0.400000, want -0.400000]
+  PASS  lab undo: debt +0.25   [got 1.000000, want 1.000000]
+  PASS  trades_state reports 4 steps   [{'lab_steps': 4, 'lab_max_steps': 5, 'lab_penalty': 0.4, 'lab_modifier': -0.4, 'evo_trades': 0}]
+  PASS  evolution trade accepted
+  PASS  evolution 0.50 -> 0.55   [got 0.550000, want 0.550000]
+  PASS  evolution trade: debt -0.25   [got 0.750000, want 0.750000]
+  PASS  evolution trade refused at >= 0.95
+  PASS  there are forgettable technologies   [6 forgettable: ['automation', 'automobilism', 'fast-inserter', 'heavy-armor', 'logistic-science-pack']]
+  PASS  automation has no researched successors
+  PASS  tech with researched successor is not forgettable   [military]
+  PASS  forget refused for tech with dependents
+  PASS  forget accepted
+  PASS  automation is no longer researched
+  PASS  forget: debt -step of that tech   [got 0.700000, want 0.700000]
+  PASS  forget: reversed counter incremented
+
+== Tiers: debt scales with science tier ==
+  PASS  automation is tier 1 (red)   [{'step': 0.05, 'tier': 1, 'factor': 0.5}]
+  PASS  tier 1 step == 0.5 × base   [got 0.050000, want 0.050000]
+  PASS  military-2 is tier 2   [{'step': 0.1, 'tier': 2, 'factor': 1}]
+  PASS  researching a red tech adds 0.5 × base   [got 0.050000, want 0.050000]
+  PASS  recalculate uses tier-weighted steps   [got 0.450000, want 0.450000]
+
+== Debt-free bonus ==
+  PASS  bonus inactive while in debt   [{'amount': 0.2, 'active': False, 'applied': 0}]
+  PASS  bonus active at zero debt   [{'amount': 0.2, 'active': True, 'applied': 0.2}]
+  PASS  lab speed modifier +amount   [got 0.200000, want 0.200000]
+  PASS  bonus survives reset_technology_effects   [got 0.200000, want 0.200000]
+  PASS  setting change re-applies exact amount   [got 0.500000, want 0.500000]
+  PASS  new debt removes the bonus   [got 0.000000, want 0.000000]
+  PASS  bonus reported inactive again
+
+== Archive requests ==
+  PASS  processing-unit recipe unlocked
+  PASS  candidates are producible value-table items   [36 candidates]
+  PASS  a random request is drawn   [{'item': 'space-science-pack', 'amount': 500, 'delivered': 0, 'bonus': 3, 'started_tick': 3222, 'expires_tick': 57222}]
+  PASS  explicit request processing-unit x20
+  PASS  20 requested items at 3x plus 10 at 1x   [got 0.067659, want 0.067659]
+  PASS  request completed and cleared
+  PASS  stats.requests_completed == 1
+  PASS  3 upcoming requests are queued   [[{'item': 'chemical-science-pack', 'amount': 500}, {'item': 'supercapacitor', 'amount': 200}, {'item': 'bioflux', 'amount': 500}]]
+  PASS  head of the queue becomes the current request   [{'item': 'chemical-science-pack', 'amount': 500, 'delivered': 0, 'bonus': 3, 'started_tick': 3950, 'expires_tick': 57950}]
+  PASS  queue refilled to 3   [[{'item': 'supercapacitor', 'amount': 200}, {'item': 'bioflux', 'amount': 500}, {'item': 'flying-robot-frame', 'amount': 100}]]
+  PASS  partial delivery tracked   [{'item': 'processing-unit', 'amount': 50, 'delivered': 5, 'bonus': 3, 'started_tick': 3953, 'expires_tick': 57953}]
+  PASS  expired request replaced by a new one   [{'item': 'supercapacitor', 'amount': 200, 'delivered': 0, 'bonus': 3, 'started_tick': 4531, 'expires_tick': 58531}]
+  PASS  stats.requests_expired == 1
+  PASS  interval 0: no request drawn
+
+== Persistence: save, restart, compare ==
+  PASS  debt persists across restart   [got 0.000000, want 0.000000]
+  PASS  multiplier persists across restart   [got 1.000000, want 1.000000]
+  PASS  base persists across restart   [got 1.000000, want 1.000000]
+
+== Mod added to an existing save ==
+  INFO  18 technologies researched without the mod
+  PASS  existing save: counted techs > 0   [counted=16 of 18 researched]
+  PASS  existing save: debt == sum of tier steps   [got 1.150000, want 1.150000]
+  PASS  existing save: multiplier applied   [got 2.150000, want 2.150000]
+  PASS  no Lua errors in log
+
+== Load without Space Age ==
+  PASS  vanilla: loads without space-age
+  PASS  vanilla: multiplier == base   [got 1.000000, want 1.000000]
+  PASS  vanilla: tier-weighted debt of 4 techs   [got 0.150000, want 0.150000]
+
+== Phase 2 (vanilla): Knowledge Consolidation ==
+  PASS  vanilla: consolidation tech exists, is infinite and never counts
+  PASS  vanilla: consolidation ignores the price multiplier
+  PASS  vanilla: level 1 costs 500 units regardless of multiplier   [cost=500]
+  PASS  vanilla: level 1 removes X debt   [got 1.750000, want 1.750000]
+  PASS  vanilla: stats.consolidation_levels == 1
+  PASS  vanilla: multiplier follows   [got 2.750000, want 2.750000]
+  PASS  vanilla: level 2 costs more than level 1 (750)   [level=2 cost=750]
+  PASS  vanilla: consolidation never pushes debt below 0   [got 0.000000, want 0.000000]
+  PASS  vanilla: multiplier never below base   [got 1.000000, want 1.000000]
+  PASS  vanilla: normal research still adds its step after consolidation   [got 0.050000, want 0.050000]
+
+== Phase 3 (vanilla): Archive ==
+  PASS  vanilla: archive entity exists
+  PASS  vanilla: archive recipe/item/tech exist
+  PASS  vanilla: archive tech does not count as debt
+  PASS  vanilla: script-built archive is registered   [archives=1]
+  PASS  vanilla: items without value are not consumed   [left=50]
+  PASS  vanilla: no debt change from valueless items   [got 3.000000, want 3.000000]
+  PASS  vanilla: processing-unit has a value   [1]
+  PASS  vanilla: first offering reduces debt by expected amount   [got 0.095310, want 0.095310]
+  PASS  vanilla: offered items consumed
+  PASS  vanilla: stats.archive_items == 100
+  PASS  vanilla: second offering matches curve   [got 0.087011, want 0.087011]
+  PASS  vanilla: second offering yields less than first   [0.09531 -> 0.08701]
+  PASS  vanilla: destroyed archive is unregistered   [archives=0]
+  PASS  vanilla: stale archive handle cleaned up on sweep   [archives=0]
+  PASS  vanilla: no Lua errors in log
+
+136/136 checks passed
+exit=0
