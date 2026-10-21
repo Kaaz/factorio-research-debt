@@ -35,10 +35,11 @@ GAME_PORT = 34215
 # --------------------------------------------------------------------------- env
 
 class Env:
-    def __init__(self, factorio: Path, root: Path, space_age: bool):
+    def __init__(self, factorio: Path, root: Path, space_age: bool, line: str = None):
         self.factorio = factorio
         self.root = root
         self.space_age = space_age
+        self.line = line  # Factorio line to test against ("2.0"); rewrites info.json like build.py
         self.data = root / "data"
         self.mods = self.data / "mods"
         self.saves = self.data / "saves"
@@ -73,7 +74,14 @@ class Env:
         info = json.loads((MOD_SRC / "info.json").read_text(encoding="utf-8"))
         for old in self.mods.glob("research-debt_*"):
             shutil.rmtree(old)
-        shutil.copytree(MOD_SRC, self.mods / f"research-debt_{info['version']}")
+        dst = self.mods / f"research-debt_{info['version']}"
+        shutil.copytree(MOD_SRC, dst)
+        if self.line and self.line != info["factorio_version"]:
+            import re
+            info["factorio_version"] = self.line
+            info["dependencies"] = [re.sub(r"^base\s*>=\s*[\d.]+", f"base >= {self.line}", d) for d in info["dependencies"]]
+            (dst / "info.json").write_text(json.dumps(info, indent=2) + "
+", encoding="utf-8")
 
     def write_mod_list(self, mod_enabled=True):
         mods = [{"name": "base", "enabled": True}]
@@ -352,6 +360,7 @@ def main():
     ap.add_argument("--no-space-age", action="store_true")
     ap.add_argument("--keep", action="store_true")
     ap.add_argument("--only", nargs="*", default=None)
+    ap.add_argument("--line", default=None, help='Factorio line of the installation under test, e.g. "2.0"')
     args = ap.parse_args()
 
     only = set(args.only) if args.only else None
@@ -359,7 +368,7 @@ def main():
 
     space_age = (not args.no_space_age) and (args.factorio.parent.parent.parent / "data" / "space-age").exists()
     print(f"Factorio: {args.factorio}\nEnv: {args.env}\nSpace Age: {space_age}")
-    env = Env(args.factorio, args.env, space_age)
+    env = Env(args.factorio, args.env, space_age, args.line)
     t = T()
     try:
         env.prepare()
@@ -403,7 +412,7 @@ def main():
 
         if want("nosa") and space_age:
             print("\n== Load without Space Age ==")
-            env2 = Env(args.factorio, args.env, False)
+            env2 = Env(args.factorio, args.env, False, args.line)
             env2.prepare()
             s2 = env2.create_save("vanilla.zip")
             env2.start_server(s2)
