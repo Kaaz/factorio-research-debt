@@ -113,6 +113,11 @@ For mod authors there's `remote.call("research-debt", ...)` with `status()`, `ad
 - Research that is running keeps its finished units when the multiplier changes; only the rest grows.
 - Adding the mod to an existing save: the debt is calculated from everything already researched.
 
+## Developing and releasing
+
+See [DEVELOPMENT.md](DEVELOPMENT.md) for setup, testing on 2.1 and 2.0, the release workflow and the portal
+page, and [NOTES.md](NOTES.md) for verified API behaviour and design decisions.
+
 ## Repository layout
 
 ```
@@ -133,7 +138,9 @@ research-debt/            the mod
 tests/                    see below
 build.py                  builds dist/research-debt_<version>.zip
 NOTES.md                  what I verified against the API and why things are the way they are
-PORTAL.md                 texts and images for the mod portal page
+PORTAL.md                 how the mod portal page is maintained
+DEVELOPMENT.md            setup, tests, release process
+CLAUDE.md                 conventions for AI-assisted sessions
 ```
 
 ## Tests
