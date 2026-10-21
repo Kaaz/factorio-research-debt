@@ -134,15 +134,25 @@ def cmd_images(key, args):
     files = sorted(folder.glob("*.png"))
     if not files:
         sys.exit(f"no images in {folder}; run tests/gui_check.py and tests/portal_images.ps1")
+    import hashlib
     ids = []
     for p in files:
+        # the portal identifies images by the SHA1 of the file, so an image that was uploaded
+        # before (by hand or by an earlier run) can simply be referenced again
+        sha1 = hashlib.sha1(p.read_bytes()).hexdigest()
         r = requests.post(f"{BASE}/images/add", data={"mod": name}, headers=auth(key), timeout=60)
         upload_url = check(r, f"images/add {p.name}")["upload_url"]
         with p.open("rb") as f:
             r = requests.post(upload_url, files={"image": f}, timeout=300)
-        body = check(r, f"image upload {p.name}")
-        ids.append(body["id"])
-        print("uploaded", p.name, "->", body["id"][:12])
+        body = r.json() if r.content else {}
+        if body.get("id"):
+            ids.append(body["id"])
+            print("uploaded", p.name, "->", body["id"][:12])
+        elif "already exists" in str(body.get("message", "")).lower():
+            ids.append(sha1)
+            print("already on the portal", p.name, "->", sha1[:12])
+        else:
+            check(r, f"image upload {p.name}")
     r = requests.post(f"{BASE}/images/edit", data={"mod": name, "images": ",".join(ids)}, headers=auth(key), timeout=60)
     check(r, "images/edit")
     print("image order set:", len(ids), "images")
