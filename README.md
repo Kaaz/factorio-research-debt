@@ -173,3 +173,7 @@ The window cannot be tested headless. Start the client on the test save (same is
 
 Then press Ctrl+K, research something, build an Archive (`/c game.player.insert{name="rd-archive"}`) and watch
 the window and HUD update.
+
+## License
+
+MIT, see [LICENSE](LICENSE). The same file ships inside the mod zip.
