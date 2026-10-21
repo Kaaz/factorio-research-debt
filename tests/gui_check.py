@@ -27,6 +27,8 @@ def main():
     # windowed client so the test does not take over the screen
     with env.config.open("a", encoding="utf-8") as f:
         f.write("\n[graphics]\nfull-screen=false\n")
+        # English UI regardless of the machine's language, so screenshots suit the mod portal
+        f.write("\n[general]\nlocale=en\n")
     info = json.loads((SELFTEST / "info.json").read_text(encoding="utf-8"))
     dst = env.mods / f"rd-gui-selftest_{info['version']}"
     if dst.exists():
