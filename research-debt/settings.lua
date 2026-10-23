@@ -32,6 +32,10 @@ data:extend({
     type = "double-setting", name = "rd-consolidation-value", setting_type = "startup",
     default_value = 0.25, minimum_value = 0.0, maximum_value = 100.0, order = "a-e",
   },
+  {
+    type = "double-setting", name = "rd-consolidation-percent", setting_type = "startup",
+    default_value = 0.15, minimum_value = 0.0, maximum_value = 0.9, order = "a-e2",
+  },
   -- Runtime global
   {
     type = "double-setting", name = "rd-max-multiplier", setting_type = "runtime-global",

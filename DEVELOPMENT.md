@@ -147,7 +147,9 @@ First choice: the preset tables in `scripts/config.lua` (Relaxed / Standard / Ha
 reference for experienced players. The individual settings below only apply with the Custom preset.
 
 - Debt per tech: `rd-step` (startup setting, default 0.1) × tier factor (`Tiers.Balance.factors`).
-- Consolidation: `rd-consolidation-value` (0.25 per level); cost formula in data.lua (`500*1.5^(L-1)`).
+- Consolidation: share of the debt per level and floor (`consolidation_percent` / `consolidation_min`), cost
+  formula and unit time, all per preset in `Config.Presets`; Custom uses `rd-consolidation-percent` /
+  `rd-consolidation-value`.
 - Archive: `Values.items` (points per item), `Values.Balance` (debt per point, half-life of diminishing
   returns, quality bonus, request bonus/target/limits/queue size).
 - Trades: `Trades.Balance` (lab step and max, evolution step and cap, debt per trade).

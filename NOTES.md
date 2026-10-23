@@ -193,3 +193,12 @@ sense with a step of about 0.02–0.03. The portal/README texts quote the x8 / x
 - Research stance (frugal / normal / rush: lab speed vs debt per tech), rocket "research data" item: later.
 - Specialisation at game start: only as a production bonus for the chosen science pack, if at all.
 - Rejected: decay while idle (rewards passive play), interest (runaway), planet/military amnesty.
+
+## Consolidation rebalance (2026-10-23)
+
+Measured with the old values (fixed 0.25, 500 x 1.5^(L-1), 60 s): level 10 costs 19k units (16 lab-hours with
+20 labs), eight realistic levels remove 2.0 of the ~22 debt a run to the rocket builds up. Now: 15% of the
+current debt per level with a floor of 0.25, 500 x 1.3^(L-1) at 45 s. Scenario debt 8, ten levels (24k units):
+6.4 removed. Percentage-based means consolidation handles bulk and can never reach zero alone; the Archive and
+trades do the last stretch. Each level's removed amount is stored so reversing gives back exactly that.
+Presets: relaxed 20% / 0.35 / 1.25, standard 15% / 0.25 / 1.3, hardcore 12% / 0.20 / 750 x 1.4.

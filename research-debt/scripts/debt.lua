@@ -59,8 +59,9 @@ function Debt.growth_mode()
   return settings.startup["rd-growth-mode"].value
 end
 
-function Debt.consolidation_value()
-  return Config.consolidation_value()
+-- Debt the next Knowledge Consolidation level would remove (percentage of the current debt, with a floor).
+function Debt.consolidation_value(debt)
+  return Config.consolidation_value(debt or storage.debt or 0)
 end
 
 -- f(debt): how much more expensive research is relative to base.
@@ -211,6 +212,8 @@ function Debt.status()
     step = Debt.step(),
     growth_mode = Debt.growth_mode(),
     consolidation_value = Debt.consolidation_value(),
+    consolidation_percent = Config.consolidation_percent(),
+    consolidation_min = Config.consolidation_min(),
     stats = storage.stats,
     total_offered = storage.total_offered,
     archives = table_size(storage.archives),

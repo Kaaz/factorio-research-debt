@@ -24,7 +24,9 @@ local function on_research_finished(event)
   local proto = tech.prototype
   local force = tech.force
   if proto.name == Debt.CONSOLIDATION_TECH then
-    local x = Debt.consolidation_value()
+    local x = math.min(storage.debt, Debt.consolidation_value())
+    storage.consolidation_removed = storage.consolidation_removed or {}
+    table.insert(storage.consolidation_removed, x) -- so a reversed level gives back exactly this
     storage.stats.consolidation_levels = storage.stats.consolidation_levels + 1
     storage.stats.consolidation_debt = storage.stats.consolidation_debt - x
     local _, m = Debt.add(-x, "consolidation", "level " .. (tech.level - 1), force)
@@ -48,7 +50,8 @@ local function on_research_reversed(event)
   if not (tech and tech.valid) then return end
   local proto = tech.prototype
   if proto.name == Debt.CONSOLIDATION_TECH then
-    local x = Debt.consolidation_value()
+    local removed = storage.consolidation_removed or {}
+    local x = table.remove(removed) or Config.consolidation_min()
     storage.stats.consolidation_levels = math.max(0, storage.stats.consolidation_levels - 1)
     storage.stats.consolidation_debt = storage.stats.consolidation_debt + x
     Debt.add(x, "consolidation-reversed", proto.name, tech.force)

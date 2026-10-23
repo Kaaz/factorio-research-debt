@@ -26,7 +26,7 @@ data:extend({
     unit = {
       count_formula = Config.consolidation_formula(),
       ingredients = consolidation_packs,
-      time = 60,
+      time = Config.consolidation_time(),
     },
     max_level = "infinite",
     upgrade = false,

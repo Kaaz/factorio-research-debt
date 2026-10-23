@@ -5,22 +5,22 @@ local Config = {}
 
 Config.Presets = {
   relaxed = {
-    step = 0.05, tier_scaling = true, consolidation_value = 0.35,
-    consolidation_formula = "500*1.5^(L-1)",
+    step = 0.05, tier_scaling = true, consolidation_percent = 0.20, consolidation_min = 0.35,
+    consolidation_formula = "500*1.25^(L-1)", consolidation_time = 45,
     archive_half_life = 2000, request_interval = 10,
     bonus_peak = 0.20, penalty_threshold = nil, penalty = 0,
     max_multiplier = 10,
   },
   standard = {
-    step = 0.10, tier_scaling = true, consolidation_value = 0.25,
-    consolidation_formula = "500*1.5^(L-1)",
+    step = 0.10, tier_scaling = true, consolidation_percent = 0.15, consolidation_min = 0.25,
+    consolidation_formula = "500*1.3^(L-1)", consolidation_time = 45,
     archive_half_life = 1000, request_interval = 15,
     bonus_peak = 0.20, penalty_threshold = 3.0, penalty = 0.10,
     max_multiplier = 50,
   },
   hardcore = {
-    step = 0.15, tier_scaling = true, consolidation_value = 0.20,
-    consolidation_formula = "750*1.6^(L-1)",
+    step = 0.15, tier_scaling = true, consolidation_percent = 0.12, consolidation_min = 0.20,
+    consolidation_formula = "750*1.4^(L-1)", consolidation_time = 45,
     archive_half_life = 500, request_interval = 20,
     bonus_peak = 0.10, penalty_threshold = 2.5, penalty = 0.15,
     max_multiplier = 100,
@@ -56,10 +56,19 @@ end
 -- startup-stage values
 function Config.step() return pick("step", "startup", "rd-step", 0.1) end
 function Config.tier_scaling() return pick("tier_scaling", "startup", "rd-tier-scaling", true) end
-function Config.consolidation_value() return pick("consolidation_value", "startup", "rd-consolidation-value", 0.25) end
+function Config.consolidation_min() return pick("consolidation_min", "startup", "rd-consolidation-value", 0.25) end
+function Config.consolidation_percent() return pick("consolidation_percent", "startup", "rd-consolidation-percent", 0.15) end
 function Config.consolidation_formula()
   local p = Config.preset()
-  return p and p.consolidation_formula or "500*1.5^(L-1)"
+  return p and p.consolidation_formula or "500*1.3^(L-1)"
+end
+function Config.consolidation_time()
+  local p = Config.preset()
+  return p and p.consolidation_time or 45
+end
+-- Debt removed by the next Knowledge Consolidation level at a given debt.
+function Config.consolidation_value(debt)
+  return math.max(Config.consolidation_min(), Config.consolidation_percent() * (debt or 0))
 end
 function Config.archive_half_life()
   local p = Config.preset()
@@ -127,7 +136,8 @@ function Config.resolved()
   return {
     preset = Config.preset_name(),
     step = Config.step(), tier_scaling = Config.tier_scaling(),
-    consolidation_value = Config.consolidation_value(), consolidation_formula = Config.consolidation_formula(),
+    consolidation_percent = Config.consolidation_percent(), consolidation_min = Config.consolidation_min(),
+    consolidation_formula = Config.consolidation_formula(), consolidation_time = Config.consolidation_time(),
     archive_half_life = Config.archive_half_life(), request_interval = Config.request_interval(),
     bonus_peak = Config.bonus_peak(), penalty_threshold = Config.penalty_threshold(), penalty = Config.penalty(),
     max_multiplier = Config.max_multiplier(),

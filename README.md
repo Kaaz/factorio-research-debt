@@ -50,8 +50,11 @@ research, which is also what the recalculation uses when you add the mod to an e
 
 ### What removes debt
 
-**Knowledge Consolidation.** Infinite tech, needs chemical science, removes 0.25 per level. The
-multiplier doesn't touch it, but every level costs 1.5× the previous one (500, 750, 1125, ...).
+**Knowledge Consolidation.** Infinite tech, needs chemical science. Each level removes 15% of the
+current debt, at least 0.25, so it is the tool for bringing a big debt down fast and can never do the
+last stretch to zero on its own. The multiplier doesn't touch it, but every level costs 1.3× the
+previous one (500, 650, 845, ... units of red/green/blue at 45 s). A reversed level gives back exactly
+what it removed.
 
 **The Archive.** A chest with its own cheap tech. Items with a value in `scripts/values.lua` are
 eaten once per second and lower the debt; the rest stays in the chest. Quality counts

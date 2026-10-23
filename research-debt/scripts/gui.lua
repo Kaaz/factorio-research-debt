@@ -243,7 +243,8 @@ local function build_consolidation_card(parent, player, s)
     return
   end
   local after = Debt.compute_multiplier(math.max(0, s.debt - s.consolidation_value))
-  add_para(c, { "research-debt.gui-cons-text", fmt2(s.consolidation_value), fmtx(after) }, 560)
+  add_para(c, { "research-debt.gui-cons-text-percent", fmt_pct(s.consolidation_percent), fmt2(s.consolidation_min),
+    fmt2(s.consolidation_value), fmtx(after) }, 560)
   local C = Config.Curve
   local done = cs.level - 1
   local next_ms = (math.floor(done / C.milestone_levels) + 1) * C.milestone_levels

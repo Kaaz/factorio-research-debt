@@ -9,7 +9,6 @@ def phase2(env, t, vanilla=False):
     tag = "vanilla: " if vanilla else ""
     print(f"\n== Phase 2{' (vanilla)' if vanilla else ''}: Knowledge Consolidation ==")
     s = env.status()
-    x = s["consolidation_value"]
     step = s["step"]
 
     info = env.lua_json(f'remote.call("research-debt","counts","{CONS}")')
@@ -23,19 +22,31 @@ def phase2(env, t, vanilla=False):
     cost1 = env.lua_json(f'game.forces.player.technologies["{CONS}"].research_unit_count')
     t.check(tag + "level 1 costs 500 units regardless of multiplier", cost1 == 500, f"cost={cost1}")
 
-    before = env.status()["debt"]
+    s = env.status()
+    x = s["consolidation_value"]
+    t.approx(tag + "value at debt 2.0 is 15% = 0.30", x, max(s["consolidation_min"], s["consolidation_percent"] * 2.0))
+    before = s["debt"]
     env.lua(f'game.forces.player.technologies["{CONS}"].researched=true')
     s = env.status()
-    t.approx(tag + "level 1 removes X debt", s["debt"], before - x)
+    t.approx(tag + "level 1 removes 15% of the debt", s["debt"], before - x)
+    x2 = s["consolidation_value"]
+    t.approx(tag + "next level removes 15% of what is left", x2, max(s["consolidation_min"], s["consolidation_percent"] * s["debt"]))
     t.check(tag + "stats.consolidation_levels == 1", s["stats"]["consolidation_levels"] == 1)
     t.approx(tag + "multiplier follows", s["actual_multiplier"], s["base_multiplier"] * (1 + s["debt"]))
     lvl = env.lua_json(f'game.forces.player.technologies["{CONS}"].level')
     cost2 = env.lua_json(f'game.forces.player.technologies["{CONS}"].research_unit_count')
-    t.check(tag + "level 2 costs more than level 1 (750)", cost2 == 750 and lvl == 2, f"level={lvl} cost={cost2}")
+    t.check(tag + "level 2 costs more than level 1 (650)", cost2 == 650 and lvl == 2, f"level={lvl} cost={cost2}")
 
-    # minimum respected
+    # reversing a level gives back exactly what it removed
+    env.lua(f'game.forces.player.technologies["{CONS}"].researched=false')
+    s = env.status()
+    t.approx(tag + "reversed level gives back exactly its amount", s["debt"], before)
+
+    # floor and minimum respected
     env.lua('remote.call("research-debt","reset")')
-    env.lua(f'remote.call("research-debt","add_debt",{x / 2},"test")')
+    env.lua('remote.call("research-debt","add_debt",0.1,"test")')
+    s = env.status()
+    t.approx(tag + "small debt: the floor applies", s["consolidation_value"], s["consolidation_min"])
     env.lua(f'game.forces.player.technologies["{CONS}"].researched=true')
     s = env.status()
     t.approx(tag + "consolidation never pushes debt below 0", s["debt"], 0)
