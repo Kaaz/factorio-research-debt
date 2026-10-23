@@ -2,7 +2,7 @@
   "name": "research-debt",
   "version": "2.1.2",
   "title": "Research Debt",
-  "author": "Maik",
+  "author": "Kaaz",
   "homepage": "https://github.com/Kaaz/factorio-research-debt",
   "factorio_version": "2.1",
   "description": "Every technology you rush through leaves technical debt behind and research gets more expensive. Clean up by consolidating knowledge, filing reference samples in an archive, or giving something else up. Clean labs run faster.",
