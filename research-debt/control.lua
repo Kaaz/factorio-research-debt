@@ -7,6 +7,7 @@ local Bonus = require("scripts.bonus")
 local Tiers = require("scripts.tiers")
 local Requests = require("scripts.requests")
 local Config = require("scripts.config")
+local Consolidation = require("scripts.consolidation")
 
 local function fmt(x) return string.format("%.2f", x) end
 
@@ -23,20 +24,24 @@ local function on_research_finished(event)
   if not (tech and tech.valid) then return end
   local proto = tech.prototype
   local force = tech.force
-  if proto.name == Debt.CONSOLIDATION_TECH then
-    local x = math.min(storage.debt, Debt.consolidation_value())
+  if Consolidation.is(proto.name) then
+    local tier = Consolidation.tier_of(proto.name) or 1
+    local x = math.min(storage.debt, Debt.consolidation_value(storage.debt, tier))
     storage.consolidation_removed = storage.consolidation_removed or {}
     table.insert(storage.consolidation_removed, x) -- so a reversed level gives back exactly this
     storage.stats.consolidation_levels = storage.stats.consolidation_levels + 1
     storage.stats.consolidation_debt = storage.stats.consolidation_debt - x
-    local _, m = Debt.add(-x, "consolidation", "level " .. (tech.level - 1), force)
+    local _, m = Debt.add(-x, "consolidation", proto.name .. " level " .. (tech.researched and tech.level or tech.level - 1), force)
     notify(force, "research-debt.msg-consolidation", fmt(x), fmt(m))
-    local reached, total = Bonus.update_milestones(force, tech.level - 1)
+    local levels = Consolidation.levels_completed(force)
+    local reached, total = Bonus.update_milestones(force, levels)
     if reached then
-      notify(force, "research-debt.msg-milestone", tech.level - 1, string.format("%d%%", math.floor(total * 100 + 0.5)))
+      notify(force, "research-debt.msg-milestone", levels, string.format("%d%%", math.floor(total * 100 + 0.5)))
     end
     return
   end
+  -- any technology may unlock the next consolidation tier
+  Consolidation.update_tiers(force)
   if not Debt.counts(proto) then return end
   local step = Debt.step_for(proto)
   storage.stats.techs_counted = storage.stats.techs_counted + 1
@@ -49,15 +54,16 @@ local function on_research_reversed(event)
   local tech = event.research
   if not (tech and tech.valid) then return end
   local proto = tech.prototype
-  if proto.name == Debt.CONSOLIDATION_TECH then
+  if Consolidation.is(proto.name) then
     local removed = storage.consolidation_removed or {}
     local x = table.remove(removed) or Config.consolidation_min()
     storage.stats.consolidation_levels = math.max(0, storage.stats.consolidation_levels - 1)
     storage.stats.consolidation_debt = storage.stats.consolidation_debt + x
     Debt.add(x, "consolidation-reversed", proto.name, tech.force)
-    Bonus.update_milestones(tech.force, math.max(0, tech.level - 1))
+    Bonus.update_milestones(tech.force, Consolidation.levels_completed(tech.force))
     return
   end
+  Consolidation.update_tiers(tech.force)
   if not Debt.counts(proto) then return end
   local step = Debt.step_for(proto)
   storage.stats.reversed = storage.stats.reversed + 1
@@ -95,7 +101,10 @@ script.on_event(defines.events.on_technology_effects_reset, function(event)
   Bonus.reapply(event.force)
 end)
 
-script.on_event(defines.events.on_force_created, function() Bonus.update() end)
+script.on_event(defines.events.on_force_created, function()
+  Bonus.update()
+  Consolidation.update_all_forces()
+end)
 
 Requests.on_new = function(req)
   for _, force in pairs(game.forces) do
@@ -133,6 +142,7 @@ script.on_init(function()
   Debt.init_storage()
   Debt.apply_multiplier()
   Bonus.update()
+  Consolidation.update_all_forces()
   log(string.format("[research-debt] init: base_multiplier=%.4f debt=%.4f", storage.base_multiplier, storage.debt))
 end)
 
@@ -148,6 +158,7 @@ script.on_configuration_changed(function(data)
     Debt.apply_multiplier()
   end
   Bonus.update()
+  Consolidation.update_all_forces()
   -- Prototype set may have changed (archive enabled/disabled, other mods): rebuild registry.
   Archive.rescan()
   for _, player in pairs(game.players) do
@@ -249,6 +260,12 @@ remote.add_interface("research-debt", {
              lab_speed = f.laboratory_speed_modifier, lab_productivity = f.laboratory_productivity_bonus }
   end,
   config = function() return Config.resolved() end,
+  consolidation = function(force_name)
+    local st = Consolidation.state(game.forces[force_name or "player"])
+    st.tech = nil -- not JSON-serialisable
+    st.value = Consolidation.value(game.forces[force_name or "player"], storage.debt)
+    return st
+  end,
   lab_curve = function() return Config.lab_curve() end,
   history = function() return storage.history end,
   archive_value = function(item_name, quality)

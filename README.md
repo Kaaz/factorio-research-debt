@@ -50,11 +50,15 @@ research, which is also what the recalculation uses when you add the mod to an e
 
 ### What removes debt
 
-**Knowledge Consolidation.** Infinite tech, needs chemical science. Each level removes 15% of the
-current debt, at least 0.25, so it is the tool for bringing a big debt down fast and can never do the
-last stretch to zero on its own. The multiplier doesn't touch it, but every level costs 1.3× the
-previous one (500, 650, 845, ... units of red/green/blue at 45 s). A reversed level gives back exactly
-what it removed.
+**Knowledge Consolidation.** Four tiers that follow the science packs: I (red+green, 8 levels, 10%
+of the debt per level), II (+blue, 10 levels, 15%), III (+purple+yellow, 12 levels, 20%) and IV (+space
+science, infinite, 25%). Only the highest tier you have unlocked can be researched; unlocking the next
+one replaces it. Each level removes that share of the current debt, at least 0.25, so consolidation
+brings a big debt down fast and can never do the last stretch to zero on its own. The multiplier doesn't
+touch it, but every level costs 1.2× the previous one (bases 500 / 1000 / 2000 / 4000 units at 45 s; the last
+level of III is about 15 000).
+A reversed level gives back exactly what it removed, and levels of all tiers count together for the
+milestones.
 
 **The Archive.** A chest with its own cheap tech. Items with a value in `scripts/values.lua` are
 eaten once per second and lower the debt; the rest stays in the chest. Quality counts

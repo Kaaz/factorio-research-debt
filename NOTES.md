@@ -202,3 +202,18 @@ current debt per level with a floor of 0.25, 500 x 1.3^(L-1) at 45 s. Scenario d
 6.4 removed. Percentage-based means consolidation handles bulk and can never reach zero alone; the Archive and
 trades do the last stretch. Each level's removed amount is stored so reversing gives back exactly that.
 Presets: relaxed 20% / 0.35 / 1.25, standard 15% / 0.25 / 1.3, hardcore 12% / 0.20 / 750 x 1.4.
+
+## Consolidation tiers (2026-10-23)
+
+- Four techs `rd-consolidation-green/blue/yellow/space` (red+green / +blue / +purple+yellow / +space), max levels
+  8 / 10 / 12 / infinite, percent per level 10 / 15 / 20 / 25 (standard), bases 500 / 1000 / 2000 / 4000 with one
+  growth factor per preset (1.15 / 1.2 / 1.25). With growth 1.2 the last level of III costs ~15k units, totals
+  8k / 26k / 79k per tier; full use of a tier removes 57% / 80% / 93% of the debt of its era. Names carry no numeric suffix so count_formula L starts at 1 for every tier.
+- Only the highest tier whose prerequisites are researched is `enabled`; the others are disabled with
+  `visible_when_disabled = false` (`Consolidation.update_tiers`, called after every research finish/reverse,
+  on init and on configuration change). A finite tier that is fully researched shows "exhausted" until the next
+  tier is unlocked.
+- Finished levels: `level` for a researched finite tech, `level - 1` otherwise; summed over tiers for milestones.
+- Version numbers: counting freely from 2.1.1 on; the Factorio-line scheme is dropped.
+- Science packs are `item` prototypes in 2.1, not `tool`. The old `data.raw.tool` check silently failed, which
+  is why the single Knowledge Consolidation tech in 2.1.0 only asked for red science. Fixed in 2.1.1.

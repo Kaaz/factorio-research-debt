@@ -2,8 +2,10 @@
 
 The portal page is maintained from this repository, not by hand.
 
-Version scheme: the mod version follows the Factorio line, 2.1.x for Factorio 2.1. Factorio 2.0 was served
-by 2.0.0 (same features) and is no longer updated now that 2.1 is stable; `build.py --factorio 2.0` still works.
+Version scheme: plain counting from 2.1.1 on (bug fixes 2.1.x, new mechanics 2.2.0, a big overhaul 3.0.0).
+The jump from 0.1.0 to 2.x came from a short-lived "mod version = Factorio line" scheme while 2.0 and 2.1 were
+both served; Factorio only ever updates to a higher number, so there is no way back. Factorio 2.0 was served by
+2.0.0 (same features) and is no longer updated; `build.py --factorio 2.0` still works.
 
 ```
 portal/summary.txt      short text shown in listings (max 500 characters)

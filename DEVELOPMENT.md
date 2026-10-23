@@ -35,7 +35,8 @@ creds.txt             (git-ignored) "key=<portal API key>"; never commit, never 
 
 ## 2. Conventions
 
-- Mod version = Factorio line + patch: 2.1.x for Factorio 2.1. Bump only the patch in `info.json`.
+- Versions count up from 2.1.1: bug fixes bump the patch, new mechanics the minor (2.2.0), an overhaul the
+  major. The "2" no longer tracks the Factorio line (see PORTAL.md for the history).
 - Factorio 2.0 was served once (2.0.0, identical features) and is not updated anymore since 2.1 became stable.
   `build.py --factorio 2.0` and the WSL test run still exist should that ever be needed again.
 - `storage.debt` is the single source of truth. Every change goes through `Debt.add(delta, reason, detail)`,

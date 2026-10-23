@@ -17,10 +17,13 @@ reasonable time, you open the Research Debt window (Ctrl+K) and look at the opti
 
 **You pay some of it back.** There are a few ways, and each one costs you something else:
 
-- **Knowledge Consolidation**, an infinite research. Every level takes 15% off the current debt (at
-  least 0.25), so it's the thing to do when the debt is big, and it never quite gets you to zero on its
-  own. The multiplier doesn't apply to it, but each level costs 1.3x the previous one, so it does get
-  expensive. Every 5 levels also give a permanent 2% lab productivity.
+- **Knowledge Consolidation**, a research in four tiers that follow your science packs: red+green,
+  +blue, +purple/yellow, +space science. The first three have a limited number of levels (8, 10, 12),
+  the last one is infinite, and unlocking the next tier replaces the previous one. Every level takes a
+  share off the current debt (10% to 25% depending on the tier, at least 0.25), so it's the thing to do
+  when the debt is big, and it never quite gets you to zero on its own. The multiplier doesn't apply to
+  it, but each level costs 1.2x the previous one. Every 5 levels also give a permanent 2% lab
+  productivity.
 - **The Archive**, a chest you unlock early. Anything with research value you put in it (circuits,
   engines, LDS, rocket fuel, the Space Age intermediates, science packs if you really want) gets eaten
   once per second and lowers the debt. Higher quality is worth more. The more you have archived over the

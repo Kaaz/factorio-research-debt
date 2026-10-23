@@ -6,9 +6,11 @@ Date: 2026-10-23
     - Lab speed now follows the debt: +20% at zero, +10% below 0.5, +5% below 1.0, -10% above 3.0 and -20% above 5.0 (Standard).
     - Knowledge Consolidation milestones: every 5 levels +2% lab productivity, permanently.
   Balancing:
-    - Knowledge Consolidation now removes 15% of the current debt per level (at least 0.25) instead of a fixed 0.25, costs 500 x 1.3^(L-1) units at 45 s (was 1.5^(L-1) at 60 s), and a reversed level gives back exactly what it removed.
+    - Knowledge Consolidation comes in four tiers following the science packs (I red+green 8 levels, II +blue 10, III +purple/yellow 12, IV +space infinite); only the highest unlocked tier is active. Each level removes 10/15/20/25% of the current debt (at least 0.25) instead of a fixed 0.25, costs base x 1.2^(L-1) units at 45 s, and a reversed level gives back exactly what it removed. Levels of the old single Knowledge Consolidation technology are not carried over.
   Gui:
     - The window shows the lab speed curve with your current step, the next milestone and the active preset.
+  Bugfixes:
+    - Knowledge Consolidation only asked for red science on Factorio 2.1 (science packs are items there, not tools).
   Changes:
     - The debt-free bonus setting, step, tier scaling, consolidation value, request interval and maximum multiplier are ignored unless the preset is Custom.
 ---------------------------------------------------------------------------------------------------

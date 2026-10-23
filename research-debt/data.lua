@@ -1,38 +1,45 @@
 local Config = require("scripts.config")
 
+-- Science packs are plain items in 2.1 (they were "tool" prototypes before); accept both.
 local function tool_exists(name)
-  return data.raw.tool and data.raw.tool[name] ~= nil
+  return (data.raw.item and data.raw.item[name] ~= nil) or (data.raw.tool and data.raw.tool[name] ~= nil)
 end
 
--- Phase 2: Knowledge Consolidation (infinite, escalating, never affected by the multiplier)
-local consolidation_packs = {}
-for _, pack in ipairs({ "automation-science-pack", "logistic-science-pack", "chemical-science-pack" }) do
-  if tool_exists(pack) then consolidation_packs[#consolidation_packs + 1] = { pack, 1 } end
+-- Knowledge Consolidation: one infinite tech per science tier (see scripts/consolidation.lua).
+local Consolidation = require("scripts.consolidation")
+local cons_icons = {
+  { icon = "__base__/graphics/technology/research-speed.png", icon_size = 256 },
+  { icon = "__core__/graphics/icons/technology/constants/constant-recipe-productivity.png", icon_size = 128, shift = { 100, 100 } },
+}
+for tier, t in ipairs(Consolidation.TIERS) do
+  local ok = true
+  for _, pack in ipairs(t.packs) do if not tool_exists(pack) then ok = false end end
+  for _, pre in ipairs(t.prerequisites) do if not data.raw.technology[pre] then ok = false end end
+  if ok then
+    local ingredients = {}
+    for _, pack in ipairs(t.packs) do ingredients[#ingredients + 1] = { pack, 1 } end
+    data:extend({
+      {
+        type = "technology",
+        name = t.name,
+        icons = cons_icons,
+        localised_name = { "technology-name." .. t.name },
+        localised_description = { "technology-description.rd-consolidation", tostring(tier), tostring(#Consolidation.TIERS) },
+        effects = { { type = "nothing", effect_description = { "technology-effect.rd-consolidation" } } },
+        prerequisites = t.prerequisites,
+        unit = {
+          count_formula = Config.consolidation_formula(tier),
+          ingredients = ingredients,
+          time = Config.consolidation_time(),
+        },
+        max_level = t.max_level,
+        upgrade = false,
+        ignore_tech_cost_multiplier = true,
+        order = "zz-rd-" .. tier,
+      },
+    })
+  end
 end
-if #consolidation_packs == 0 then consolidation_packs = { { "automation-science-pack", 1 } } end
-
-data:extend({
-  {
-    type = "technology",
-    name = "rd-consolidation-1",
-    icons = {
-      { icon = "__base__/graphics/technology/research-speed.png", icon_size = 256 },
-      { icon = "__core__/graphics/icons/technology/constants/constant-recipe-productivity.png", icon_size = 128, shift = { 100, 100 } },
-    },
-    localised_name = { "technology-name.rd-consolidation" },
-    localised_description = { "technology-description.rd-consolidation" },
-    effects = { { type = "nothing", effect_description = { "technology-effect.rd-consolidation" } } },
-    prerequisites = tool_exists("chemical-science-pack") and { "chemical-science-pack" } or { "logistic-science-pack" },
-    unit = {
-      count_formula = Config.consolidation_formula(),
-      ingredients = consolidation_packs,
-      time = Config.consolidation_time(),
-    },
-    max_level = "infinite",
-    upgrade = false,
-    ignore_tech_cost_multiplier = true,
-  },
-})
 
 -- Phase 3: the Archive (optional via startup setting)
 if settings.startup["rd-enable-archive"].value then

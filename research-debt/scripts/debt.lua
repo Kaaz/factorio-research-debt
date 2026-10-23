@@ -9,7 +9,6 @@ Debt.HARD_MIN = 0.001
 Debt.HARD_MAX = 100000
 Debt.HISTORY_SIZE = 30
 Debt.INFINITE_LEVEL = 4294967295 -- LuaTechnologyPrototype.max_level for max_level = "infinite"
-Debt.CONSOLIDATION_TECH = "rd-consolidation-1"
 
 -- Callbacks other modules can hook (set by control.lua).
 Debt.on_changed = nil -- function(info) called after every debt/multiplier change
@@ -59,9 +58,9 @@ function Debt.growth_mode()
   return settings.startup["rd-growth-mode"].value
 end
 
--- Debt the next Knowledge Consolidation level would remove (percentage of the current debt, with a floor).
-function Debt.consolidation_value(debt)
-  return Config.consolidation_value(debt or storage.debt or 0)
+-- Debt the next Knowledge Consolidation level of `tier` would remove (share of the debt, with a floor).
+function Debt.consolidation_value(debt, tier)
+  return Config.consolidation_value(debt or storage.debt or 0, tier or 1)
 end
 
 -- f(debt): how much more expensive research is relative to base.
@@ -211,8 +210,6 @@ function Debt.status()
     max_multiplier = max,
     step = Debt.step(),
     growth_mode = Debt.growth_mode(),
-    consolidation_value = Debt.consolidation_value(),
-    consolidation_percent = Config.consolidation_percent(),
     consolidation_min = Config.consolidation_min(),
     stats = storage.stats,
     total_offered = storage.total_offered,

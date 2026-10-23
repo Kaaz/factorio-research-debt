@@ -2,62 +2,95 @@
 import math
 import time
 
-CONS = "rd-consolidation-1"
+CONS = "rd-consolidation-blue"  # tier II, active once chemical science is researched
+
+
+def level_up(env, name):
+    """Finish one level of a (finite or infinite) multi-level tech; `researched = true` would finish all levels."""
+    env.lua(f'local t=game.forces.player.technologies["{name}"]; t.level = t.level + 1')
+
+
+def level_down(env, name):
+    env.lua(f'local t=game.forces.player.technologies["{name}"]; t.level = t.level - 1')
 
 
 def phase2(env, t, vanilla=False):
     tag = "vanilla: " if vanilla else ""
-    print(f"\n== Phase 2{' (vanilla)' if vanilla else ''}: Knowledge Consolidation ==")
+    print(f"\n== Phase 2{' (vanilla)' if vanilla else ''}: Knowledge Consolidation tiers ==")
     s = env.status()
     step = s["step"]
+    cfg = env.lua_json('remote.call("research-debt","config")')
+    pct, bases = cfg["consolidation_percents"], cfg["consolidation_bases"]
 
-    info = env.lua_json(f'remote.call("research-debt","counts","{CONS}")')
-    t.check(tag + "consolidation tech exists, is infinite and never counts", info and info["infinite"] and not info["counts"])
-    ignores = env.lua_json(f'prototypes.technology["{CONS}"].ignore_tech_cost_multiplier')
-    t.check(tag + "consolidation ignores the price multiplier", ignores is True)
+    for name, levels in (("rd-consolidation-green", 8), ("rd-consolidation-blue", 10), ("rd-consolidation-yellow", 12), ("rd-consolidation-space", 4294967295)):
+        info = env.lua_json(f'remote.call("research-debt","counts","{name}")')
+        t.check(tag + f"{name} exists with {levels} levels and never counts", info and info["max_level"] == levels and not info["counts"], str(info))
+        t.check(tag + f"{name} ignores the price multiplier", env.lua_json(f'prototypes.technology["{name}"].ignore_tech_cost_multiplier') is True)
 
-    # make sure there is debt to pay off
+    # nothing unlocked yet: no tier active
+    env.lua('remote.call("research-debt","reset")')
+    env.lua('for _,n in ipairs({"logistic-science-pack","chemical-science-pack"}) do game.forces.player.technologies[n].researched=false end')
+    env.lua('remote.call("research-debt","recalculate")')
+    cs = env.lua_json('remote.call("research-debt","consolidation","player")')
+    t.check(tag + "no tier active before logistic science", cs.get("tier") is None, str(cs))
+
+    # tier I with logistic science
+    env.lua('game.forces.player.technologies["logistic-science-pack"].researched=true')
+    cs = env.lua_json('remote.call("research-debt","consolidation","player")')
+    t.check(tag + "tier I active after logistic science", cs.get("tier") == 1 and cs.get("available") is True, str({k: cs.get(k) for k in ("tier", "available", "name")}))
+    t.check(tag + "tier I costs its base at level 1", cs["units"] == bases[0], f"units={cs['units']}")
     env.lua('remote.call("research-debt","reset")')
     env.lua('remote.call("research-debt","add_debt",2.0,"test")')
-    cost1 = env.lua_json(f'game.forces.player.technologies["{CONS}"].research_unit_count')
-    t.check(tag + "level 1 costs 500 units regardless of multiplier", cost1 == 500, f"cost={cost1}")
+    cs = env.lua_json('remote.call("research-debt","consolidation","player")')
+    t.approx(tag + "tier I value = 10% of 2.0 (or the floor)", cs["value"], max(s["consolidation_min"], pct[0] * 2.0))
+    before = env.status()["debt"]
+    level_up(env, "rd-consolidation-green")
+    s2 = env.status()
+    t.approx(tag + "tier I level removes its value", s2["debt"], before - cs["value"])
+    cs = env.lua_json('remote.call("research-debt","consolidation","player")')
+    t.check(tag + "level 2 costs base x growth", cs["units"] == round(bases[0] * cfg["consolidation_growth"]) and cs["level"] == 2, f"level={cs['level']} units={cs['units']}")
+    level_down(env, "rd-consolidation-green")
+    t.approx(tag + "reversed level gives back exactly its amount", env.status()["debt"], before)
 
-    s = env.status()
-    x = s["consolidation_value"]
-    t.approx(tag + "value at debt 2.0 is 15% = 0.30", x, max(s["consolidation_min"], s["consolidation_percent"] * 2.0))
-    before = s["debt"]
-    env.lua(f'game.forces.player.technologies["{CONS}"].researched=true')
-    s = env.status()
-    t.approx(tag + "level 1 removes 15% of the debt", s["debt"], before - x)
-    x2 = s["consolidation_value"]
-    t.approx(tag + "next level removes 15% of what is left", x2, max(s["consolidation_min"], s["consolidation_percent"] * s["debt"]))
-    t.check(tag + "stats.consolidation_levels == 1", s["stats"]["consolidation_levels"] == 1)
-    t.approx(tag + "multiplier follows", s["actual_multiplier"], s["base_multiplier"] * (1 + s["debt"]))
-    lvl = env.lua_json(f'game.forces.player.technologies["{CONS}"].level')
-    cost2 = env.lua_json(f'game.forces.player.technologies["{CONS}"].research_unit_count')
-    t.check(tag + "level 2 costs more than level 1 (650)", cost2 == 650 and lvl == 2, f"level={lvl} cost={cost2}")
-
-    # reversing a level gives back exactly what it removed
-    env.lua(f'game.forces.player.technologies["{CONS}"].researched=false')
-    s = env.status()
-    t.approx(tag + "reversed level gives back exactly its amount", s["debt"], before)
+    # tier II replaces tier I
+    env.lua('game.forces.player.technologies["chemical-science-pack"].researched=true')
+    cs = env.lua_json('remote.call("research-debt","consolidation","player")')
+    t.check(tag + "tier II active after chemical science", cs.get("tier") == 2 and cs["name"] == CONS, str({k: cs.get(k) for k in ("tier", "name")}))
+    t.check(tag + "tier I disabled once tier II is unlocked", env.lua_json('game.forces.player.technologies["rd-consolidation-green"].enabled') is False)
+    t.check(tag + "tier II starts at its own base cost", cs["units"] == bases[1], f"units={cs['units']}")
+    env.lua('remote.call("research-debt","reset")')
+    env.lua('remote.call("research-debt","add_debt",2.0,"test")')
+    cs = env.lua_json('remote.call("research-debt","consolidation","player")')
+    t.approx(tag + "tier II value = 15% of 2.0", cs["value"], max(s["consolidation_min"], pct[1] * 2.0))
+    before = env.status()["debt"]
+    level_up(env, CONS)
+    s2 = env.status()
+    t.approx(tag + "tier II level removes 15%", s2["debt"], before - cs["value"])
+    t.check(tag + "stats.consolidation_levels counts the level", s2["stats"]["consolidation_levels"] == 1)
+    t.approx(tag + "multiplier follows", s2["actual_multiplier"], s2["base_multiplier"] * (1 + s2["debt"]))
 
     # floor and minimum respected
     env.lua('remote.call("research-debt","reset")')
     env.lua('remote.call("research-debt","add_debt",0.1,"test")')
-    s = env.status()
-    t.approx(tag + "small debt: the floor applies", s["consolidation_value"], s["consolidation_min"])
-    env.lua(f'game.forces.player.technologies["{CONS}"].researched=true')
-    s = env.status()
-    t.approx(tag + "consolidation never pushes debt below 0", s["debt"], 0)
-    t.approx(tag + "multiplier never below base", s["actual_multiplier"], s["base_multiplier"])
+    cs = env.lua_json('remote.call("research-debt","consolidation","player")')
+    t.approx(tag + "small debt: the floor applies", cs["value"], s["consolidation_min"])
+    level_up(env, CONS)
+    s2 = env.status()
+    t.approx(tag + "consolidation never pushes debt below 0", s2["debt"], 0)
+    t.approx(tag + "multiplier never below base", s2["actual_multiplier"], s2["base_multiplier"])
+
+    # forgetting chemical science re-enables tier I
+    env.lua('game.forces.player.technologies["chemical-science-pack"].researched=false')
+    cs = env.lua_json('remote.call("research-debt","consolidation","player")')
+    t.check(tag + "tier I active again after forgetting chemical science", cs.get("tier") == 1)
+    env.lua('game.forces.player.technologies["chemical-science-pack"].researched=true')
 
     # debt from normal research is unaffected by consolidation bookkeeping
     env.lua('remote.call("research-debt","reset")')
     env.lua('game.forces.player.technologies["heavy-armor"].researched=false')
     env.lua('game.forces.player.technologies["heavy-armor"].researched=true')
-    s = env.status()
-    t.approx(tag + "normal research still adds its step after consolidation", s["debt"],
+    s2 = env.status()
+    t.approx(tag + "normal research still adds its step after consolidation", s2["debt"],
              env.lua_json('remote.call("research-debt","step_for","heavy-armor").step'))
 
 
@@ -265,20 +298,25 @@ def bonus(env, t):
     curve = env.lua_json('remote.call("research-debt","lab_curve")')
     t.check("curve has 6 rows", len(curve) == 6, str([round(r["modifier"], 2) for r in curve]))
 
-    # milestones: every 5 consolidation levels +2% lab productivity, permanent
+    # milestones: every 5 consolidation levels +2% lab productivity, permanent (levels of all tiers count)
+    env.lua('for _,n in ipairs({"logistic-science-pack","chemical-science-pack","space-science-pack"}) do game.forces.player.technologies[n].researched=true end')
+    env.lua('for _,n in ipairs({"rd-consolidation-green","rd-consolidation-blue","rd-consolidation-space"}) do game.forces.player.technologies[n].level = 1 end')
     prod0 = env.lua_json("game.forces.player.laboratory_productivity_bonus")
+    INF = "rd-consolidation-space"  # infinite tier: ten levels fit
     env.lua('remote.call("research-debt","add_debt",5.0,"test")')
     for _ in range(5):
-        env.lua(f'game.forces.player.technologies["{CONS}"].researched=true')
+        level_up(env, INF)
     b = env.lua_json('remote.call("research-debt","bonus","player")')
     t.approx("5 consolidation levels: +0.02 lab productivity", b["lab_productivity"] - prod0, 0.02)
     for _ in range(5):
-        env.lua(f'game.forces.player.technologies["{CONS}"].researched=true')
+        level_up(env, INF)
     t.approx("10 levels: +0.04", env.lua_json("game.forces.player.laboratory_productivity_bonus") - prod0, 0.04)
     env.lua("game.forces.player.reset_technology_effects()")
     t.approx("milestones survive reset_technology_effects", env.lua_json("game.forces.player.laboratory_productivity_bonus") - prod0, 0.04)
-    env.lua(f'game.forces.player.technologies["{CONS}"].level = 7')  # forget levels 7..10
-    env.lua(f'game.forces.player.technologies["{CONS}"].researched=false')
+    for _ in range(4):
+        level_down(env, INF)  # forget four levels: milestone drops to +0.02
+    env.lua('game.forces.player.technologies["space-science-pack"].researched=false')
+    t.approx("forgotten levels lower the milestone bonus", env.lua_json("game.forces.player.laboratory_productivity_bonus") - prod0, 0.02)
     env.lua('remote.call("research-debt","reset")')
 
 

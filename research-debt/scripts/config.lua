@@ -5,22 +5,25 @@ local Config = {}
 
 Config.Presets = {
   relaxed = {
-    step = 0.05, tier_scaling = true, consolidation_percent = 0.20, consolidation_min = 0.35,
-    consolidation_formula = "500*1.25^(L-1)", consolidation_time = 45,
+    step = 0.05, tier_scaling = true, consolidation_min = 0.35,
+    consolidation_percents = { 0.15, 0.20, 0.25, 0.30 }, consolidation_bases = { 400, 800, 1600, 3200 },
+    consolidation_growth = 1.15, consolidation_time = 45,
     archive_half_life = 2000, request_interval = 10,
     bonus_peak = 0.20, penalty_threshold = nil, penalty = 0,
     max_multiplier = 10,
   },
   standard = {
-    step = 0.10, tier_scaling = true, consolidation_percent = 0.15, consolidation_min = 0.25,
-    consolidation_formula = "500*1.3^(L-1)", consolidation_time = 45,
+    step = 0.10, tier_scaling = true, consolidation_min = 0.25,
+    consolidation_percents = { 0.10, 0.15, 0.20, 0.25 }, consolidation_bases = { 500, 1000, 2000, 4000 },
+    consolidation_growth = 1.2, consolidation_time = 45,
     archive_half_life = 1000, request_interval = 15,
     bonus_peak = 0.20, penalty_threshold = 3.0, penalty = 0.10,
     max_multiplier = 50,
   },
   hardcore = {
-    step = 0.15, tier_scaling = true, consolidation_percent = 0.12, consolidation_min = 0.20,
-    consolidation_formula = "750*1.4^(L-1)", consolidation_time = 45,
+    step = 0.15, tier_scaling = true, consolidation_min = 0.20,
+    consolidation_percents = { 0.08, 0.12, 0.16, 0.20 }, consolidation_bases = { 750, 1500, 3000, 6000 },
+    consolidation_growth = 1.25, consolidation_time = 45,
     archive_half_life = 500, request_interval = 20,
     bonus_peak = 0.10, penalty_threshold = 2.5, penalty = 0.15,
     max_multiplier = 100,
@@ -57,18 +60,36 @@ end
 function Config.step() return pick("step", "startup", "rd-step", 0.1) end
 function Config.tier_scaling() return pick("tier_scaling", "startup", "rd-tier-scaling", true) end
 function Config.consolidation_min() return pick("consolidation_min", "startup", "rd-consolidation-value", 0.25) end
-function Config.consolidation_percent() return pick("consolidation_percent", "startup", "rd-consolidation-percent", 0.15) end
-function Config.consolidation_formula()
+
+-- Custom preset: the percent setting is tier II; the other tiers scale with the standard ratios.
+local CUSTOM_PERCENT_SCALE = { 2 / 3, 1, 4 / 3, 5 / 3 }
+local CUSTOM_BASES = { 500, 1000, 2000, 4000 }
+
+function Config.consolidation_percent(tier)
+  tier = tier or 1
   local p = Config.preset()
-  return p and p.consolidation_formula or "500*1.3^(L-1)"
+  if p then return p.consolidation_percents[tier] or p.consolidation_percents[#p.consolidation_percents] end
+  return settings.startup["rd-consolidation-percent"].value * (CUSTOM_PERCENT_SCALE[tier] or 1)
+end
+function Config.consolidation_growth()
+  local p = Config.preset()
+  return p and p.consolidation_growth or 1.2
+end
+function Config.consolidation_base(tier)
+  local p = Config.preset()
+  local bases = p and p.consolidation_bases or CUSTOM_BASES
+  return bases[tier] or bases[#bases]
+end
+function Config.consolidation_formula(tier)
+  return string.format("%d*%s^(L-1)", Config.consolidation_base(tier or 1), tostring(Config.consolidation_growth()))  -- e.g. 500*1.2^(L-1)
 end
 function Config.consolidation_time()
   local p = Config.preset()
   return p and p.consolidation_time or 45
 end
--- Debt removed by the next Knowledge Consolidation level at a given debt.
-function Config.consolidation_value(debt)
-  return math.max(Config.consolidation_min(), Config.consolidation_percent() * (debt or 0))
+-- Debt removed by the next Knowledge Consolidation level of `tier` at a given debt.
+function Config.consolidation_value(debt, tier)
+  return math.max(Config.consolidation_min(), Config.consolidation_percent(tier or 1) * (debt or 0))
 end
 function Config.archive_half_life()
   local p = Config.preset()
@@ -136,8 +157,10 @@ function Config.resolved()
   return {
     preset = Config.preset_name(),
     step = Config.step(), tier_scaling = Config.tier_scaling(),
-    consolidation_percent = Config.consolidation_percent(), consolidation_min = Config.consolidation_min(),
-    consolidation_formula = Config.consolidation_formula(), consolidation_time = Config.consolidation_time(),
+    consolidation_percents = { Config.consolidation_percent(1), Config.consolidation_percent(2), Config.consolidation_percent(3), Config.consolidation_percent(4) },
+    consolidation_bases = { Config.consolidation_base(1), Config.consolidation_base(2), Config.consolidation_base(3), Config.consolidation_base(4) },
+    consolidation_min = Config.consolidation_min(), consolidation_growth = Config.consolidation_growth(),
+    consolidation_time = Config.consolidation_time(),
     archive_half_life = Config.archive_half_life(), request_interval = Config.request_interval(),
     bonus_peak = Config.bonus_peak(), penalty_threshold = Config.penalty_threshold(), penalty = Config.penalty(),
     max_multiplier = Config.max_multiplier(),

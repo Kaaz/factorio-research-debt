@@ -29,7 +29,7 @@ steps[#steps + 1] = function(player)
   f.technologies["rd-archive"].researched = true
   local e = player.surface.create_entity({ name = "rd-archive", position = { player.position.x + 4, player.position.y }, force = f, raise_built = true })
   e.get_inventory(defines.inventory.chest).insert({ name = "processing-unit", count = 40 })
-  f.research_queue = { "rd-consolidation-1" }
+  f.research_queue = { "rd-consolidation-blue" }
   f.research_progress = 0.42
   remote.call("research-debt", "trade_lab", f.name)
   remote.call("research-debt", "new_request")

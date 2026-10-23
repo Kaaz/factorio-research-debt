@@ -10,6 +10,7 @@ local Tiers = require("scripts.tiers")
 local Bonus = require("scripts.bonus")
 local Requests = require("scripts.requests")
 local Config = require("scripts.config")
+local Consolidation = require("scripts.consolidation")
 
 local Gui = {}
 
@@ -93,35 +94,7 @@ end
 -- Consolidation status for a force -----------------------------------------
 
 local function consolidation_state(force)
-  local tech = force.technologies[Debt.CONSOLIDATION_TECH]
-  if not tech then return nil end
-  local prereqs_ok = true
-  local missing = nil
-  for name, pre in pairs(tech.prerequisites) do
-    if not pre.researched then
-      prereqs_ok = false
-      missing = missing or pre.localised_name
-    end
-  end
-  local queued, researching, progress = false, false, 0
-  if force.current_research and force.current_research.name == tech.name then
-    researching = true
-    progress = force.research_progress
-  end
-  for _, q in pairs(force.research_queue) do
-    if q.name == tech.name then queued = true end
-  end
-  return {
-    tech = tech,
-    available = tech.enabled and prereqs_ok,
-    missing = missing,
-    queued = queued,
-    researching = researching,
-    progress = progress,
-    units = tech.research_unit_count,
-    ingredients = tech.research_unit_ingredients,
-    level = tech.level,
-  }
+  return Consolidation.state(force)
 end
 
 local function ingredients_rich(ingredients)
@@ -236,22 +209,36 @@ end
 
 local function build_consolidation_card(parent, player, s)
   local force = player.force
-  local c = card(parent, { "research-debt.gui-cons-title" })
   local cs = consolidation_state(force)
-  if not cs then
-    add_para(c, { "research-debt.gui-cons-missing" }, 560, RED)
+  local c = card(parent, { "research-debt.gui-cons-title-tier", cs.tier or 0, cs.tiers })
+  if not cs.tech then
+    local pre = cs.next_prerequisites and cs.next_prerequisites[1]
+    local proto = pre and prototypes.technology[pre]
+    add_para(c, { "research-debt.gui-cons-none", proto and proto.localised_name or "?" }, 560, GREY)
     return
   end
-  local after = Debt.compute_multiplier(math.max(0, s.debt - s.consolidation_value))
-  add_para(c, { "research-debt.gui-cons-text-percent", fmt_pct(s.consolidation_percent), fmt2(s.consolidation_min),
-    fmt2(s.consolidation_value), fmtx(after) }, 560)
+  local value = Consolidation.value(force, s.debt)
+  local after = Debt.compute_multiplier(math.max(0, s.debt - value))
+  add_para(c, { "research-debt.gui-cons-text-percent", fmt_pct(cs.percent), fmt2(s.consolidation_min),
+    fmt2(value), fmtx(after) }, 560)
   local C = Config.Curve
-  local done = cs.level - 1
+  local done = cs.levels_completed
   local next_ms = (math.floor(done / C.milestone_levels) + 1) * C.milestone_levels
   add_label(c, { "research-debt.gui-cons-milestone", fmt_pct(C.milestone_bonus), C.milestone_levels, next_ms,
     fmt_signed_pct(Bonus.milestones_applied(force)) }, "label", Bonus.milestones_applied(force) > 0 and GREEN or GREY,
     { "research-debt.gui-cons-milestone-tooltip" })
-  add_label(c, { "research-debt.gui-cons-cost", cs.level, fmt_int(cs.units), ingredients_rich(cs.ingredients) }, "label", GREY)
+  if cs.max_level ~= "infinite" then
+    add_label(c, { "research-debt.gui-cons-cost-finite", cs.level, cs.max_level, fmt_int(cs.units), ingredients_rich(cs.ingredients) }, "label", GREY)
+  else
+    add_label(c, { "research-debt.gui-cons-cost", cs.level, fmt_int(cs.units), ingredients_rich(cs.ingredients) }, "label", GREY)
+  end
+  if cs.next_tier then
+    local pre = cs.next_prerequisites
+    local names = {}
+    for _, n in ipairs(pre) do names[#names + 1] = string.format("[technology=%s]", n) end
+    add_label(c, { "research-debt.gui-cons-next-tier", cs.next_tier, table.concat(names, " "), fmt_pct(Config.consolidation_percent(cs.next_tier)) },
+      "label", GREY, { "research-debt.gui-cons-next-tier-tooltip" })
+  end
   local row = c.add({ type = "flow", direction = "horizontal" })
   row.style.vertical_align = "center"
   local status = add_label(row, "", "label")
@@ -269,6 +256,17 @@ end
 -- Updates the live part of the consolidation card without rebuilding (keeps scroll position).
 function Gui.update_consolidation_status(status, btn, cs, s)
   local caption, color
+  if not cs.tech then
+    status.caption = ""
+    btn.enabled = false
+    return
+  end
+  if cs.exhausted then
+    status.caption = { "research-debt.gui-cons-exhausted", cs.max_level }
+    status.style.font_color = GREY
+    btn.enabled = false
+    return
+  end
   if cs.researching then
     caption, color = { "research-debt.gui-cons-researching", fmt_pct(cs.progress) }, GREEN
   elseif cs.queued then
@@ -757,7 +755,7 @@ function Gui.on_click(event)
     end
     Gui.refresh_all()
   elseif action == "queue_consolidation" then
-    local tech = player.force.technologies[Debt.CONSOLIDATION_TECH]
+    local tech = Consolidation.active_tech(player.force)
     if tech then
       local ok = player.force.add_research(tech)
       if ok then
@@ -811,7 +809,7 @@ function Gui.tick()
       local status = find_element(w, "rd-cons-status")
       local btn = find_element(w, "rd-cons-queue")
       local cs = consolidation_state(player.force)
-      if status and btn and cs then
+      if status and btn and cs and cs.tech then
         Gui.update_consolidation_status(status, btn, cs, Debt.status())
       end
     end
