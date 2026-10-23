@@ -32,7 +32,7 @@ local function fmt_signed(x, digits)
   return string.format("%+." .. (digits or 2) .. "f", x)
 end
 local function fmt_signed_pct(x)
-  return string.format("%+d%%", math.floor(x * 100 + (x >= 0 and 0.5 or -0.5)))
+  return string.format("%+d%%", math.floor(x * 100 + 0.5))
 end
 local function fmt_int(n)
   local s = tostring(math.floor(n + 0.5))
