@@ -219,3 +219,5 @@ Presets: relaxed 20% / 0.35 / 1.25, standard 15% / 0.25 / 1.3, hardcore 12% / 0.
   is why the single Knowledge Consolidation tech in 2.1.0 only asked for red science. Fixed in 2.1.1.
 - Lab productivity per consolidation level is now a native `laboratory-productivity` technology effect (1% per
   level): visible in the research screen, applied/reverted by the game, no script bookkeeping, no chat message.
+- `game.take_screenshot{show_gui=true}` does not capture the vanilla technology screen (`open_technology_gui`), only
+  mod GUIs and the HUD; a tech-screen image for the portal has to be taken by hand.

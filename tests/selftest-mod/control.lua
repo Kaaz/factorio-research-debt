@@ -83,6 +83,7 @@ steps[#steps + 1] = function(player)
   player.opened = lab
 end
 steps[#steps + 1] = function(player) shot(player, "rd-gui-5-lab") end
+-- (the vanilla technology screen is not captured by take_screenshot, so it is not part of the self-test)
 steps[#steps + 1] = function(player)
   player.opened = nil
   remote.call("research-debt", "reset")
