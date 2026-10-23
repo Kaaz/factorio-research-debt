@@ -1,6 +1,7 @@
 -- Core model: one number, storage.debt (>= 0). The multiplier is derived from it.
 -- apply_multiplier() is the ONLY place that writes technology_price_multiplier.
 local Tiers = require("scripts.tiers")
+local Config = require("scripts.config")
 
 local Debt = {}
 
@@ -46,7 +47,7 @@ function Debt.init_storage()
 end
 
 function Debt.step()
-  return settings.startup["rd-step"].value
+  return Config.step()
 end
 
 -- Debt added by one level of this technology (base step × science-tier factor).
@@ -59,7 +60,7 @@ function Debt.growth_mode()
 end
 
 function Debt.consolidation_value()
-  return settings.startup["rd-consolidation-value"].value
+  return Config.consolidation_value()
 end
 
 -- f(debt): how much more expensive research is relative to base.
@@ -77,7 +78,7 @@ end
 function Debt.limits()
   local base = storage.base_multiplier or 1
   local min = math.max(Debt.HARD_MIN, base * settings.global["rd-min-multiplier"].value)
-  local max = math.min(Debt.HARD_MAX, settings.global["rd-max-multiplier"].value)
+  local max = math.min(Debt.HARD_MAX, Config.max_multiplier())
   if max < min then max = min end
   return min, max
 end

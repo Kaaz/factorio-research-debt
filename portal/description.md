@@ -34,8 +34,14 @@ give up to bring it down, research the next batch. The only thing that is never 
 infinite technologies (mining productivity, damage upgrades, the productivity researches): they cost
 what they always cost and don't add any debt, so your late game isn't ruined by this.
 
-**If you get the debt all the way to zero,** every lab runs 20% faster for as long as it stays there.
-Most of the time you won't bother, but right before a big research push it's worth it.
+**Your labs feel it too.** At zero debt every lab runs 20% faster, below 0.5 still 10%, below 1.0 5%.
+Let it climb above 3.0 and they slow down by 10%, above 5.0 by 20%, until you pay some back. And every
+5 levels of Knowledge Consolidation give a permanent 2% lab productivity, so consolidating now and then
+pays off even when the debt is low.
+
+**Pick a preset.** Relaxed, Standard or Hardcore set all the numbers at once (step per tech, consolidation
+cost, Archive, requests, the lab curve, the cap). Standard is tuned for people who have a few hundred hours
+in the game. Custom unlocks the individual settings.
 
 ## Keeping track
 
@@ -55,8 +61,8 @@ by default because I found it annoying. Every change also goes to chat, which yo
   requests and the bonus are per force. I haven't played it in multiplayer yet, I'd like to hear how
   that goes.
 - Won't play nice with other mods that also set the technology price multiplier.
-- Pretty much every number is a setting: debt per tech, the tier scaling, the limits, the bonus, the
-  request interval. The item values are in a plain Lua table if you want to tune them.
+- With the Custom preset pretty much every number is a setting: debt per tech, tier scaling, limits, the
+  lab curve, the request interval. The item values are in a plain Lua table if you want to tune them.
 - Commands: /rd-status, /rd-recalc, /rd-reset, /rd-gui. There's a remote interface for mod authors.
 - English and Dutch.
 

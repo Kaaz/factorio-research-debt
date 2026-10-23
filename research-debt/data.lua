@@ -1,3 +1,5 @@
+local Config = require("scripts.config")
+
 local function tool_exists(name)
   return data.raw.tool and data.raw.tool[name] ~= nil
 end
@@ -22,7 +24,7 @@ data:extend({
     effects = { { type = "nothing", effect_description = { "technology-effect.rd-consolidation" } } },
     prerequisites = tool_exists("chemical-science-pack") and { "chemical-science-pack" } or { "logistic-science-pack" },
     unit = {
-      count_formula = "500*1.5^(L-1)",
+      count_formula = Config.consolidation_formula(),
       ingredients = consolidation_packs,
       time = 60,
     },

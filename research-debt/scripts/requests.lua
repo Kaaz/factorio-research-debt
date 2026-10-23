@@ -1,6 +1,7 @@
 -- Archive requests: periodically the Archive asks for a specific item at a bonus value.
 -- One global request at a time (debt is global too). Items delivered to any Archive count.
 local Values = require("scripts.values")
+local Config = require("scripts.config")
 
 local Requests = {}
 
@@ -8,11 +9,11 @@ Requests.on_new = nil  -- function(request) set by control.lua (chat message)
 Requests.on_done = nil -- function(request)
 
 local function interval_ticks()
-  return settings.global["rd-request-interval"].value * 60 * 60
+  return Config.request_interval() * 60 * 60
 end
 
 function Requests.enabled()
-  return settings.global["rd-request-interval"].value > 0 and prototypes.entity["rd-archive"] ~= nil
+  return Config.request_interval() > 0 and prototypes.entity["rd-archive"] ~= nil
 end
 
 -- item -> true when some force with research can currently craft it

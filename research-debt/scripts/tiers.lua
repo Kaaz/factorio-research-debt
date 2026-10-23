@@ -2,6 +2,8 @@
 -- science pack among its ingredients decides the factor. Red-only technologies are cheap,
 -- late-game technologies expensive. Packs from other mods fall back to "number of distinct
 -- packs" as the tier.
+local Config = require("scripts.config")
+
 local Tiers = {}
 
 Tiers.Balance = {
@@ -24,7 +26,7 @@ Tiers.Balance = {
 }
 
 function Tiers.enabled()
-  return settings.startup["rd-tier-scaling"].value
+  return Config.tier_scaling()
 end
 
 function Tiers.max_tier()

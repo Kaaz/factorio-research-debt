@@ -6,6 +6,7 @@ local Trades = require("scripts.trades")
 local Bonus = require("scripts.bonus")
 local Tiers = require("scripts.tiers")
 local Requests = require("scripts.requests")
+local Config = require("scripts.config")
 
 local function fmt(x) return string.format("%.2f", x) end
 
@@ -28,6 +29,10 @@ local function on_research_finished(event)
     storage.stats.consolidation_debt = storage.stats.consolidation_debt - x
     local _, m = Debt.add(-x, "consolidation", "level " .. (tech.level - 1), force)
     notify(force, "research-debt.msg-consolidation", fmt(x), fmt(m))
+    local reached, total = Bonus.update_milestones(force, tech.level - 1)
+    if reached then
+      notify(force, "research-debt.msg-milestone", tech.level - 1, string.format("%d%%", math.floor(total * 100 + 0.5)))
+    end
     return
   end
   if not Debt.counts(proto) then return end
@@ -47,6 +52,7 @@ local function on_research_reversed(event)
     storage.stats.consolidation_levels = math.max(0, storage.stats.consolidation_levels - 1)
     storage.stats.consolidation_debt = storage.stats.consolidation_debt + x
     Debt.add(x, "consolidation-reversed", proto.name, tech.force)
+    Bonus.update_milestones(tech.force, math.max(0, tech.level - 1))
     return
   end
   if not Debt.counts(proto) then return end
@@ -71,11 +77,12 @@ Debt.on_changed = function()
   Gui.refresh_all()
 end
 
-Bonus.on_toggled = function(force, active)
-  if active then
-    notify(force, "research-debt.msg-bonus-on", string.format("%d%%", math.floor(Bonus.amount() * 100 + 0.5)))
+Bonus.on_tier_changed = function(force, old_mod, new_mod)
+  local pct = string.format("%+d%%", math.floor(new_mod * 100 + 0.5))
+  if new_mod > old_mod then
+    notify(force, "research-debt.msg-labs-faster", pct)
   else
-    notify(force, "research-debt.msg-bonus-off", string.format("%d%%", math.floor(Bonus.amount() * 100 + 0.5)))
+    notify(force, "research-debt.msg-labs-slower", pct)
   end
 end
 
@@ -91,7 +98,7 @@ Requests.on_new = function(req)
   for _, force in pairs(game.forces) do
     if force.research_enabled and force.name ~= "enemy" and force.name ~= "neutral" then
       notify(force, "research-debt.msg-request-new", req.amount, "[item=" .. req.item .. "]",
-        prototypes.item[req.item].localised_name, req.bonus, settings.global["rd-request-interval"].value)
+        prototypes.item[req.item].localised_name, req.bonus, Config.request_interval())
     end
   end
   Gui.refresh_all()
@@ -234,8 +241,12 @@ remote.add_interface("research-debt", {
     return { step = Debt.step_for(proto), tier = Tiers.tier_of(proto), factor = Tiers.factor(proto) }
   end,
   bonus = function(force_name)
-    return { amount = Bonus.amount(), active = Bonus.active(), applied = Bonus.applied(game.forces[force_name or "player"]) }
+    local f = game.forces[force_name or "player"]
+    return { modifier = Bonus.current_modifier(), applied = Bonus.applied(f), milestones = Bonus.milestones_applied(f),
+             lab_speed = f.laboratory_speed_modifier, lab_productivity = f.laboratory_productivity_bonus }
   end,
+  config = function() return Config.resolved() end,
+  lab_curve = function() return Config.lab_curve() end,
   history = function() return storage.history end,
   archive_value = function(item_name, quality)
     local v = Values.value(item_name)
@@ -246,7 +257,12 @@ remote.add_interface("research-debt", {
     return Values.effective_points(storage.total_offered, points) * Values.Balance.debt_per_point
   end,
   archive_process_now = function() Archive.process_all() return Debt.status() end,
-  balance = function() return Values.Balance end,
+  balance = function()
+    local b = {}
+    for k, v in pairs(Values.Balance) do b[k] = v end
+    b.half_life = Values.half_life()
+    return b
+  end,
   open_gui = function(player_index) Gui.open(game.get_player(player_index)) end,
   gui_toggle = function(player_index, what) Gui.toggle_section(game.get_player(player_index), what) end,
   -- only the owning mod may write its runtime-global settings

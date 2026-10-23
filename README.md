@@ -11,8 +11,8 @@ If you keep queueing like before, the red and green part of the tree alone leave
 and the rocket would come at about ×23. So at some point you open the window (Ctrl+K) and pay some of
 it back: an infinite research that gets pricier per level, an Archive that eats valuable items (and
 asks for specific ones at triple value), or trades: slower labs, higher evolution, forgetting a tech.
-Then you research the next batch. Infinite technologies are never touched, and at zero debt your labs
-run 20% faster. Works with and without Space Age. Factorio 2.1.
+Then you research the next batch. Infinite technologies are never touched; your labs run faster while the
+debt is low and slower while it is high. Works with and without Space Age. Factorio 2.1.
 
 Zip: `python build.py` builds `dist/research-debt_<version>.zip`. Or copy the
 `research-debt` folder into your mods folder as `research-debt_<version>`.
@@ -69,11 +69,16 @@ same rate. Raise enemy evolution on your current surface by 5% for 0.25 debt, no
 available at 95%+. Or forget a technology nothing else depends on: you lose its recipes and bonuses
 and get back exactly the debt it added.
 
-**Debt-free bonus.** While the debt is exactly zero all labs run 20% faster. The next tech that
-adds debt ends it.
+**Lab speed follows the debt.** At zero debt all labs run 20% faster, below 0.5 10%, below 1.0 5%.
+Above 3.0 they run 10% slower, above 5.0 20% slower, until you pay some back. Every 5 levels of
+Knowledge Consolidation add a permanent 2% lab productivity.
 
-All the numbers live in `settings.lua`, `scripts/values.lua` (`Values.Balance`, `Values.items`),
-`scripts/tiers.lua` and `scripts/trades.lua`.
+**Presets.** Relaxed, Standard (tuned for experienced players) and Hardcore set the step, the
+consolidation cost and value, the Archive half-life, the request interval, the lab curve and the
+maximum multiplier together; Custom uses the individual settings. Tables in `scripts/config.lua`.
+
+All the numbers live in `scripts/config.lua` (presets), `settings.lua` (Custom), `scripts/values.lua`
+(`Values.Balance`, `Values.items`), `scripts/tiers.lua` and `scripts/trades.lua`.
 
 ## In game
 
@@ -133,7 +138,8 @@ research-debt/            the mod
   scripts/archive.lua     Archive tracking and processing
   scripts/requests.lua    Archive requests
   scripts/trades.lua      lab speed / evolution / forget
-  scripts/bonus.lua       debt-free bonus
+  scripts/config.lua      presets and resolved balance values
+  scripts/bonus.lua       lab speed curve and consolidation milestones
   scripts/gui.lua         window, HUD, lab panel
   locale/en, locale/nl
 tests/                    see below

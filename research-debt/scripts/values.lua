@@ -6,11 +6,13 @@
 -- Diminishing returns: the efficiency of the N-th point ever offered is
 --   1 / (1 + N / half_life)
 -- so after half_life points have been offered, items are worth half as much.
+local Config = require("scripts.config")
+
 local Values = {}
 
 Values.Balance = {
   debt_per_point = 0.001,   -- debt removed per (effective) point
-  half_life = 1000,         -- points offered before efficiency halves (1000 points = 10 technologies)
+  -- half_life comes from the preset / Config.archive_half_life(): points offered before efficiency halves
   quality_bonus = 0.6,      -- per quality level: normal 1.0, uncommon 1.6, rare 2.2, epic 2.8, legendary 4.0
   process_interval = 60,    -- ticks between archive sweeps
   -- archive requests
@@ -83,14 +85,18 @@ function Values.quality_multiplier(quality)
 end
 
 -- Efficiency of the next point offered.
+function Values.half_life()
+  return Config.archive_half_life()
+end
+
 function Values.efficiency(total_offered)
-  return 1 / (1 + (total_offered or 0) / Values.Balance.half_life)
+  return 1 / (1 + (total_offered or 0) / Values.half_life())
 end
 
 -- Effective points when `points` are offered on top of `total_offered`
 -- (exact integral of the efficiency curve).
 function Values.effective_points(total_offered, points)
-  local h = Values.Balance.half_life
+  local h = Values.half_life()
   return h * math.log((h + total_offered + points) / (h + total_offered))
 end
 

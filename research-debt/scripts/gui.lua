@@ -9,6 +9,7 @@ local Trades = require("scripts.trades")
 local Tiers = require("scripts.tiers")
 local Bonus = require("scripts.bonus")
 local Requests = require("scripts.requests")
+local Config = require("scripts.config")
 
 local Gui = {}
 
@@ -29,6 +30,9 @@ local function fmtx(x) return string.format("×%.2f", x) end
 local function fmt_pct(x) return string.format("%d%%", math.floor(x * 100 + 0.5)) end
 local function fmt_signed(x, digits)
   return string.format("%+." .. (digits or 2) .. "f", x)
+end
+local function fmt_signed_pct(x)
+  return string.format("%+d%%", math.floor(x * 100 + (x >= 0 and 0.5 or -0.5)))
 end
 local function fmt_int(n)
   local s = tostring(math.floor(n + 0.5))
@@ -165,14 +169,17 @@ local function build_summary(parent, s, player)
     add_label(right, { "research-debt.gui-next-tech", fmt2(s.step), fmtx(next_m) }, "label", GREY,
       { "research-debt.gui-next-tech-tooltip" })
   end
-  -- debt-free bonus
-  local b = Bonus.amount()
-  if b > 0 then
-    if Bonus.active() then
-      add_label(right, { "research-debt.gui-bonus-active", fmt_pct(b) }, "bold_label", GREEN, { "research-debt.gui-bonus-tooltip" })
+  -- lab speed curve
+  local cur, better, worse = Bonus.describe(s.debt)
+  if cur then
+    local color = cur.modifier > 0 and GREEN or (cur.modifier < 0 and RED or GREY)
+    local line
+    if better and better.to ~= nil then
+      line = { "research-debt.gui-curve-line", fmt_signed_pct(cur.modifier), fmt_signed_pct(better.modifier), fmt3(math.max(0, s.debt - better.to)) }
     else
-      add_label(right, { "research-debt.gui-bonus-inactive", fmt_pct(b), fmt3(s.debt) }, "label", GREY, { "research-debt.gui-bonus-tooltip" })
+      line = { "research-debt.gui-curve-line-top", fmt_signed_pct(cur.modifier) }
     end
+    add_label(right, line, cur.modifier ~= 0 and "bold_label" or "label", color, { "research-debt.gui-curve-tooltip" })
   end
 end
 
@@ -237,6 +244,12 @@ local function build_consolidation_card(parent, player, s)
   end
   local after = Debt.compute_multiplier(math.max(0, s.debt - s.consolidation_value))
   add_para(c, { "research-debt.gui-cons-text", fmt2(s.consolidation_value), fmtx(after) }, 560)
+  local C = Config.Curve
+  local done = cs.level - 1
+  local next_ms = (math.floor(done / C.milestone_levels) + 1) * C.milestone_levels
+  add_label(c, { "research-debt.gui-cons-milestone", fmt_pct(C.milestone_bonus), C.milestone_levels, next_ms,
+    fmt_signed_pct(Bonus.milestones_applied(force)) }, "label", Bonus.milestones_applied(force) > 0 and GREEN or GREY,
+    { "research-debt.gui-cons-milestone-tooltip" })
   add_label(c, { "research-debt.gui-cons-cost", cs.level, fmt_int(cs.units), ingredients_rich(cs.ingredients) }, "label", GREY)
   local row = c.add({ type = "flow", direction = "horizontal" })
   row.style.vertical_align = "center"
@@ -297,7 +310,7 @@ local function build_archive_card(parent, player, s, st)
     status, status_color = { "research-debt.gui-arch-count", s.archives }, GREEN
   end
   add_label(c, status, "label", status_color)
-  add_label(c, { "research-debt.gui-arch-efficiency", fmt_pct(eff), fmt_int(Values.Balance.half_life) }, "label",
+  add_label(c, { "research-debt.gui-arch-efficiency", fmt_pct(eff), fmt_int(Values.half_life()) }, "label",
     eff > 0.5 and GREEN or (eff > 0.2 and ORANGE or RED), { "research-debt.gui-arch-efficiency-tooltip" })
   -- a concrete example: how many processing units (or best available item) for one tech step
   local example = prototypes.item["processing-unit"] and "processing-unit" or nil
@@ -425,13 +438,21 @@ local function build_trades_cards(parent, player, s)
 end
 
 local function build_bonus_card(parent, s)
-  local b = Bonus.amount()
-  if b <= 0 then return end
-  local c = card(parent, { "research-debt.gui-bonus-title" })
-  if Bonus.active() then
-    add_para(c, { "research-debt.gui-bonus-text-active", fmt_pct(b) }, 560, GREEN)
-  else
-    add_para(c, { "research-debt.gui-bonus-text-inactive", fmt_pct(b), fmt3(s.debt) }, 560)
+  local c = card(parent, { "research-debt.gui-curve-title" })
+  add_para(c, { "research-debt.gui-curve-text" }, 560)
+  local cur = Bonus.describe(s.debt)
+  local tbl = c.add({ type = "table", column_count = 2 })
+  tbl.style.column_alignments[2] = "right"
+  tbl.style.horizontal_spacing = 16
+  for _, r in ipairs(Config.lab_curve()) do
+    local range
+    if r.from == nil then range = { "research-debt.gui-curve-row-zero" }
+    elseif r.to == nil then range = { "research-debt.gui-curve-row-above", fmt2(r.from) }
+    else range = { "research-debt.gui-curve-row-between", fmt2(r.from), fmt2(r.to) } end
+    local is_cur = cur and r.from == cur.from and r.to == cur.to
+    add_label(tbl, range, is_cur and "bold_label" or "label", is_cur and nil or GREY)
+    add_label(tbl, fmt_signed_pct(r.modifier), is_cur and "bold_label" or "label",
+      r.modifier > 0 and GREEN or (r.modifier < 0 and RED or GREY))
   end
 end
 
@@ -558,7 +579,7 @@ function Gui.fill_unsafe(player, frame_content)
   build_info_card(content)
   content.add({ type = "line" })
   build_history(content, st)
-  add_label(content, { "research-debt.gui-settings-hint", s.growth_mode, fmt2(s.step), fmtx(s.max_multiplier) }, "label", GREY,
+  add_label(content, { "research-debt.gui-settings-hint-preset", { "research-debt.preset-" .. Config.preset_name() }, s.growth_mode, fmt2(s.step), fmtx(s.max_multiplier) }, "label", GREY,
     { "research-debt.gui-settings-hint-tooltip" })
   content.add({
     type = "checkbox", name = "rd-hud-checkbox", caption = { "research-debt.gui-hud-toggle" },
@@ -612,8 +633,9 @@ function Gui.update_hud(player)
   local s = Debt.status()
   hud.caption = { "research-debt.hud-caption", fmtx(s.actual_multiplier) }
   local next_m = Debt.compute_multiplier(s.debt + s.step)
-  if Bonus.active() then
-    hud.tooltip = { "research-debt.hud-tooltip-bonus", fmt3(s.debt), fmt_int(s.stats.techs_counted), fmt_pct(Bonus.amount()) }
+  local mod = Bonus.current_modifier()
+  if mod ~= 0 then
+    hud.tooltip = { "research-debt.hud-tooltip-curve", fmt3(s.debt), fmt_int(s.stats.techs_counted), fmt_signed_pct(mod) }
   else
     hud.tooltip = { "research-debt.hud-tooltip", fmt3(s.debt), fmt_int(s.stats.techs_counted), fmtx(next_m) }
   end
@@ -650,9 +672,10 @@ function Gui.update_lab_panel(player)
   inner.mult.caption = { "research-debt.gui-lab-mult", fmtx(s.actual_multiplier) }
   inner.mult.style.font_color = s.debt > 0 and ORANGE or GREEN
   inner.line1.caption = { "research-debt.gui-lab-line1", fmt3(s.debt), fmt_int(s.stats.techs_counted) }
-  if Bonus.active() then
-    inner.line2.caption = { "research-debt.gui-bonus-active", fmt_pct(Bonus.amount()) }
-    inner.line2.style.font_color = GREEN
+  local mod = Bonus.current_modifier()
+  if mod ~= 0 then
+    inner.line2.caption = { "research-debt.gui-lab-curve", fmt_signed_pct(mod) }
+    inner.line2.style.font_color = mod > 0 and GREEN or RED
   else
     inner.line2.caption = { "research-debt.gui-lab-line2", fmtx(Debt.compute_multiplier(s.debt + s.step)) }
     inner.line2.style.font_color = GREY

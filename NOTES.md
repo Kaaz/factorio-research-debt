@@ -172,3 +172,24 @@ sense with a step of about 0.02–0.03. The portal/README texts quote the x8 / x
 
 - 2026-10-23: Factorio 2.1 became the stable release. 2.0 support stops at 2.0.0 (left on the portal); the
   workflow and tools default to the 2.1 line only.
+
+## Lab speed curve, milestones, presets (2026-10-23)
+
+- The debt-free bonus became a curve (`Config.lab_modifier`): +peak at 0 debt, half below 0.5, a quarter below
+  1.0, nothing up to the penalty threshold, -penalty above it and -2x penalty two debt higher. Standard: +20/+10/+5,
+  -10% above 3.0, -20% above 5.0. Applied as an additive `laboratory_speed_modifier` per force, tracked in
+  `storage.bonus_applied`, re-applied after `reset_technology_effects`.
+- Knowledge Consolidation milestones: every 5 finished levels +2% `laboratory_productivity_bonus`, permanent,
+  per force, tracked in `storage.milestone_applied`; reversing levels lowers it again.
+- Presets (`rd-preset`, startup): relaxed / standard / hardcore / custom. `scripts/config.lua` resolves every
+  balance value; with a preset the individual settings are ignored (their descriptions say so). The data stage
+  reads the preset too (consolidation cost formula). Standard equals the previous defaults.
+- Not possible from the test runner: startup settings (binary mod-settings.dat), so only the standard preset is
+  exercised; the curve, milestones and the "setting ignored under a preset" rule are tested.
+
+## Parked ideas (user feedback 2026-10-23)
+
+- Free-tech token for a fulfilled Archive request: maybe later, together with another mechanic.
+- Research stance (frugal / normal / rush: lab speed vs debt per tech), rocket "research data" item: later.
+- Specialisation at game start: only as a production bonus for the chosen science pack, if at all.
+- Rejected: decay while idle (rewards passive play), interest (runaway), planet/military amnesty.

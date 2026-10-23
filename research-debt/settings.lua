@@ -1,6 +1,10 @@
 data:extend({
   -- Startup
   {
+    type = "string-setting", name = "rd-preset", setting_type = "startup",
+    default_value = "standard", allowed_values = { "relaxed", "standard", "hardcore", "custom" }, order = "a-0",
+  },
+  {
     type = "string-setting", name = "rd-growth-mode", setting_type = "startup",
     default_value = "linear", allowed_values = {"linear", "exponential"}, order = "a-a",
   },
@@ -44,6 +48,14 @@ data:extend({
   {
     type = "double-setting", name = "rd-debt-free-bonus", setting_type = "runtime-global",
     default_value = 0.2, minimum_value = 0.0, maximum_value = 5.0, order = "b-b2",
+  },
+  {
+    type = "double-setting", name = "rd-penalty-threshold", setting_type = "runtime-global",
+    default_value = 3.0, minimum_value = 0.0, maximum_value = 100.0, order = "b-b4",
+  },
+  {
+    type = "double-setting", name = "rd-penalty", setting_type = "runtime-global",
+    default_value = 0.1, minimum_value = 0.0, maximum_value = 0.9, order = "b-b5",
   },
   {
     type = "bool-setting", name = "rd-chat-notifications", setting_type = "runtime-global",

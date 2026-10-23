@@ -18,7 +18,8 @@ research-debt/        the mod itself (this folder, and only this folder, ends up
   scripts/archive.lua Archive registry and processing
   scripts/requests.lua Archive requests and the upcoming queue
   scripts/trades.lua  lab speed / evolution / forget trades
-  scripts/bonus.lua   debt-free lab speed bonus
+  scripts/config.lua  presets; every balance value is resolved here (preset wins over settings)
+  scripts/bonus.lua   lab speed curve and consolidation milestones
   scripts/gui.lua     window, HUD button, lab panel
   locale/en, locale/nl   one .cfg per feature; a section may not repeat inside one file
   changelog.txt       Factorio changelog format; the first "Version:" is the current one
@@ -41,8 +42,9 @@ creds.txt             (git-ignored) "key=<portal API key>"; never commit, never 
   which logs one line (`[research-debt] debt a -> b (+d) reason=...`) and refreshes the GUI. Never write
   `game.difficulty_settings.technology_price_multiplier` anywhere else.
 - Per-tech amounts always come from `Debt.step_for(proto)` so reversing/forgetting returns exactly what was added.
-- Balance numbers live in tables, not in logic: `settings.lua`, `Values.Balance` / `Values.items`,
-  `Tiers.Balance`, `Trades.Balance`.
+- Balance numbers live in tables, not in logic: `Config.Presets` / `Config.Curve` (scripts/config.lua),
+  `settings.lua` (only used by the Custom preset), `Values.Balance` / `Values.items`, `Tiers.Balance`,
+  `Trades.Balance`. Read values through `Config.*`, never from `settings.*` directly.
 - Only one `on_nth_tick(60)` handler and one handler per event per mod: control.lua owns them and calls modules.
 - GUI code runs under `xpcall`; an error closes the window and logs a traceback instead of crashing the game.
 - All user-facing text goes through locale keys (English and Dutch). New keys go in the .cfg of the feature;
@@ -141,12 +143,16 @@ The public read API (`/api/mods/research-debt/full`) lags behind edits for a whi
 
 ## 7. Tuning balance
 
+First choice: the preset tables in `scripts/config.lua` (Relaxed / Standard / Hardcore). Standard is the
+reference for experienced players. The individual settings below only apply with the Custom preset.
+
 - Debt per tech: `rd-step` (startup setting, default 0.1) × tier factor (`Tiers.Balance.factors`).
 - Consolidation: `rd-consolidation-value` (0.25 per level); cost formula in data.lua (`500*1.5^(L-1)`).
 - Archive: `Values.items` (points per item), `Values.Balance` (debt per point, half-life of diminishing
   returns, quality bonus, request bonus/target/limits/queue size).
 - Trades: `Trades.Balance` (lab step and max, evolution step and cap, debt per trade).
-- Bonus: `rd-debt-free-bonus` (map setting, default 0.2).
+- Lab curve: peak `rd-debt-free-bonus`, penalty `rd-penalty-threshold` / `rd-penalty` (Custom), shape in
+  `Config.Curve`; milestones `Config.Curve.milestone_levels` / `milestone_bonus`.
 - Limits: `rd-max-multiplier`, `rd-min-multiplier` (map settings).
 
 After changing a number, run the headless suite: most checks compute their expectations from the live

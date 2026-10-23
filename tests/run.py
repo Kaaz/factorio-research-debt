@@ -272,11 +272,15 @@ def phase1(env: Env, t: T):
     research(env, "logistics")
 
     # max clamp
-    # runtime-global settings can only be written by the owning mod -> remote set_setting
+    # the maximum comes from the preset (standard: 50); the individual setting is ignored under a preset
     env.lua('remote.call("research-debt","set_setting","rd-max-multiplier",1.2)')
     s = env.status()
-    t.approx("max-multiplier setting clamps", s["actual_multiplier"], 1.2)
+    t.approx("max-multiplier setting ignored under a preset", s["actual_multiplier"], s["base_multiplier"] * (1 + s["debt"]))
+    env.lua('remote.call("research-debt","add_debt",100,"test")')
+    s = env.status()
+    t.approx("preset maximum clamps the multiplier", s["actual_multiplier"], s["max_multiplier"])
     t.check("clamped status reports raw > actual", s["raw_multiplier"] > s["actual_multiplier"])
+    env.lua('remote.call("research-debt","add_debt",-100,"test")')
     env.lua('remote.call("research-debt","set_setting","rd-max-multiplier",50)')
     s = env.status()
     t.approx("clamp released", s["actual_multiplier"], s["base_multiplier"] * (1 + s["debt"]))

@@ -1,4 +1,15 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.1.1
+Date: 2026-10-23
+  Features:
+    - Presets: Relaxed, Standard (for experienced players, equals the old defaults), Hardcore, or Custom for the individual settings.
+    - Lab speed now follows the debt: +20% at zero, +10% below 0.5, +5% below 1.0, -10% above 3.0 and -20% above 5.0 (Standard).
+    - Knowledge Consolidation milestones: every 5 levels +2% lab productivity, permanently.
+  Gui:
+    - The window shows the lab speed curve with your current step, the next milestone and the active preset.
+  Changes:
+    - The debt-free bonus setting, step, tier scaling, consolidation value, request interval and maximum multiplier are ignored unless the preset is Custom.
+---------------------------------------------------------------------------------------------------
 Version: 2.1.0
 Date: 2026-10-21
   Features:

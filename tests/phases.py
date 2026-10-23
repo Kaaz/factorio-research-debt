@@ -143,24 +143,29 @@ def trades(env, t):
     print("\n== Trades: lab speed, evolution, forgetting ==")
     env.lua('remote.call("research-debt","reset")')
     env.lua('remote.call("research-debt","add_debt",2.0,"test")')
-    lab0 = env.lua_json("game.forces.player.laboratory_speed_modifier")
+
+    def lab_net():
+        # lab speed without the debt curve's own contribution (the curve changes as trades lower the debt)
+        b = env.lua_json('remote.call("research-debt","bonus","player")')
+        return b["lab_speed"] - b["applied"]
+    lab0 = lab_net()
 
     ok = env.lua_json('remote.call("research-debt","trade_lab","player")')
     s = env.status()
     t.check("lab trade accepted", ok is True)
-    t.approx("lab trade: modifier -0.10", env.lua_json("game.forces.player.laboratory_speed_modifier"), lab0 - 0.10)
+    t.approx("lab trade: modifier -0.10", lab_net(), lab0 - 0.10)
     t.approx("lab trade: debt -0.25", s["debt"], 1.75)
     for _ in range(4):
         env.lua('remote.call("research-debt","trade_lab","player")')
     ok6 = env.lua_json('remote.call("research-debt","trade_lab","player")')
     t.check("lab trade refused after 5 steps", ok6 is False)
-    t.approx("lab trade: modifier -0.50 at max", env.lua_json("game.forces.player.laboratory_speed_modifier"), lab0 - 0.50)
+    t.approx("lab trade: modifier -0.50 at max", lab_net(), lab0 - 0.50)
     t.approx("lab trade: debt -1.25 total", env.status()["debt"], 0.75)
     env.lua("game.forces.player.reset_technology_effects()")
-    t.approx("lab penalty survives reset_technology_effects", env.lua_json("game.forces.player.laboratory_speed_modifier"), lab0 - 0.50)
+    t.approx("lab penalty survives reset_technology_effects", lab_net(), lab0 - 0.50)
     ok = env.lua_json('remote.call("research-debt","trade_lab_undo","player")')
     t.check("lab undo accepted", ok is True)
-    t.approx("lab undo: modifier -0.40", env.lua_json("game.forces.player.laboratory_speed_modifier"), lab0 - 0.40)
+    t.approx("lab undo: modifier -0.40", lab_net(), lab0 - 0.40)
     t.approx("lab undo: debt +0.25", env.status()["debt"], 1.0)
     ts = env.lua_json('remote.call("research-debt","trades_state","player")')
     t.check("trades_state reports 4 steps", ts["lab_steps"] == 4, str(ts))
@@ -178,7 +183,10 @@ def trades(env, t):
     env.lua("game.forces.enemy.set_evolution_factor(0.0, game.surfaces[1])")
 
     # forgetting
+    # make sure something is researched when this phase runs on its own
+    env.lua('local f=game.forces.player; for _,n in ipairs({"logistics","military","steel-processing"}) do if f.technologies[n] then f.technologies[n].researched=true end end')
     names = env.lua_json('remote.call("research-debt","forgettable","player")')
+    names = names if isinstance(names, list) else []
     t.check("there are forgettable technologies", len(names) > 0, f"{len(names)} forgettable: {names[:5]}")
     victim = names[0]
     all_free = env.lua_json(f'(function() for _,sc in pairs(game.forces.player.technologies["{victim}"].successors) do if sc.researched then return false end end return true end)()')
@@ -221,25 +229,45 @@ def tiers(env, t):
 
 
 def bonus(env, t):
-    print("\n== Debt-free bonus ==")
+    print("\n== Lab speed curve, presets and milestones ==")
+    cfg = env.lua_json('remote.call("research-debt","config")')
+    t.check("standard preset active with veteran values", cfg["preset"] == "standard" and cfg["step"] == 0.1
+            and cfg["penalty_threshold"] == 3.0 and cfg["penalty"] == 0.1 and cfg["max_multiplier"] == 50, str(cfg))
     env.lua('remote.call("research-debt","reset")')
-    env.lua('remote.call("research-debt","add_debt",1.0,"test")')
-    b = env.lua_json('remote.call("research-debt","bonus","player")')
-    t.check("bonus inactive while in debt", b["active"] is False and b["applied"] == 0, str(b))
+    env.lua('remote.call("research-debt","add_debt",2.0,"test")')  # neutral zone: no modifier
     lab0 = env.lua_json("game.forces.player.laboratory_speed_modifier")
-    env.lua('remote.call("research-debt","add_debt",-1.0,"test")')
-    b = env.lua_json('remote.call("research-debt","bonus","player")')
-    t.check("bonus active at zero debt", b["active"] is True and abs(b["applied"] - b["amount"]) < 1e-9, str(b))
-    t.approx("lab speed modifier +amount", env.lua_json("game.forces.player.laboratory_speed_modifier"), lab0 + b["amount"])
+
+    def mod_at(debt):
+        env.lua('remote.call("research-debt","reset")')
+        if debt > 0:
+            env.lua(f'remote.call("research-debt","add_debt",{debt},"test")')
+        return env.lua_json("game.forces.player.laboratory_speed_modifier") - lab0
+
+    for debt, want in ((0, 0.2), (0.3, 0.1), (0.8, 0.05), (2.0, 0.0), (3.5, -0.1), (6.0, -0.2)):
+        t.approx(f"lab modifier at debt {debt} is {want:+.2f}", mod_at(debt), want)
     env.lua("game.forces.player.reset_technology_effects()")
-    t.approx("bonus survives reset_technology_effects", env.lua_json("game.forces.player.laboratory_speed_modifier"), lab0 + b["amount"])
+    t.approx("penalty survives reset_technology_effects", env.lua_json("game.forces.player.laboratory_speed_modifier") - lab0, -0.2)
     env.lua('remote.call("research-debt","set_setting","rd-debt-free-bonus",0.5)')
-    t.approx("setting change re-applies exact amount", env.lua_json("game.forces.player.laboratory_speed_modifier"), lab0 + 0.5)
+    env.lua('remote.call("research-debt","reset")')
+    t.approx("individual bonus setting is ignored under a preset", env.lua_json("game.forces.player.laboratory_speed_modifier") - lab0, 0.2)
     env.lua('remote.call("research-debt","set_setting","rd-debt-free-bonus",0.2)')
-    env.lua('local f=game.forces.player; f.technologies["heavy-armor"].researched=false; f.technologies["heavy-armor"].researched=true')
-    t.approx("new debt removes the bonus", env.lua_json("game.forces.player.laboratory_speed_modifier"), lab0)
+    curve = env.lua_json('remote.call("research-debt","lab_curve")')
+    t.check("curve has 6 rows", len(curve) == 6, str([round(r["modifier"], 2) for r in curve]))
+
+    # milestones: every 5 consolidation levels +2% lab productivity, permanent
+    prod0 = env.lua_json("game.forces.player.laboratory_productivity_bonus")
+    env.lua('remote.call("research-debt","add_debt",5.0,"test")')
+    for _ in range(5):
+        env.lua(f'game.forces.player.technologies["{CONS}"].researched=true')
     b = env.lua_json('remote.call("research-debt","bonus","player")')
-    t.check("bonus reported inactive again", b["active"] is False and b["applied"] == 0)
+    t.approx("5 consolidation levels: +0.02 lab productivity", b["lab_productivity"] - prod0, 0.02)
+    for _ in range(5):
+        env.lua(f'game.forces.player.technologies["{CONS}"].researched=true')
+    t.approx("10 levels: +0.04", env.lua_json("game.forces.player.laboratory_productivity_bonus") - prod0, 0.04)
+    env.lua("game.forces.player.reset_technology_effects()")
+    t.approx("milestones survive reset_technology_effects", env.lua_json("game.forces.player.laboratory_productivity_bonus") - prod0, 0.04)
+    env.lua(f'game.forces.player.technologies["{CONS}"].level = 7')  # forget levels 7..10
+    env.lua(f'game.forces.player.technologies["{CONS}"].researched=false')
     env.lua('remote.call("research-debt","reset")')
 
 
@@ -297,13 +325,9 @@ def requests(env, t):
     t.check("expired request replaced by a new one", req2 is not None and req2["delivered"] == 0, str(req2))
     t.check("stats.requests_expired == 1", env.status()["stats"]["requests_expired"] == 1)
 
-    # interval 0 disables
+    # the interval comes from the preset; the individual setting is ignored unless the preset is Custom
     env.lua('remote.call("research-debt","set_setting","rd-request-interval",0)')
-    env.lua('remote.call("research-debt","reset")')
-    env.lua("game.speed = 8")
-    time.sleep(1.2)
-    env.lua("game.speed = 1")
-    t.check("interval 0: no request drawn", env.lua_json('remote.call("research-debt","request")') is None)
+    t.check("request interval setting ignored under a preset", env.lua_json('remote.call("research-debt","config").request_interval') == 15)
     env.lua('remote.call("research-debt","set_setting","rd-request-interval",15)')
     env.lua('storage.__t.destroy{raise_destroy=true}')
     env.lua('remote.call("research-debt","reset")')
