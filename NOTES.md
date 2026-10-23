@@ -152,3 +152,20 @@ Everything below was checked against the bundled docs (`Factorio/doc-html/runtim
   → 136/136, identical to 2.1.23.
 - The runner now sets `read-data=__PATH__executable__/../../data`; `__PATH__system-read-data__` points to
   /usr/share/factorio on Linux.
+
+## Debt curve with the defaults (Space Age 2.1, step 0.1, tier scaling on, measured 2026-10-23)
+
+Counting technologies per tier and the debt they add in total if nothing is paid back:
+
+| Tier | Techs | Debt | Cumulative multiplier at base x1 |
+|---|---|---|---|
+| 1 (red) | 15 | 0.75 | x1.75 |
+| 2 (green, military) | 60 | 6.0 | x7.75 |
+| 3 (blue) | 50 | 7.5 | x15.25 |
+| 4 (purple, yellow) | 39 | 7.8 | x23 |
+| 5 (space, planet packs) | 49 | 12.25 | x35 |
+| 6 (cryogenic) | 9 | 2.7 | x38 |
+
+222 counting techs, 37 debt in total; the default cap of x50 is never hit at base x1. At base x4 the cap is
+reached around the 110th tech. Exponential mode with step 0.1 explodes (1.1^75 ≈ 1270) and only makes
+sense with a step of about 0.02–0.03. The portal/README texts quote the x8 / x23 figures.

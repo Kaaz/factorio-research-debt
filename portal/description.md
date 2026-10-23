@@ -1,7 +1,9 @@
 I always felt that research in Factorio is a bit of a no-brainer: you queue up everything, you build
 more labs, done. This mod makes you think about it. Every technology you finish adds "debt", and the
-research cost multiplier of the map follows that debt. So after 40 techs everything costs roughly
-twice as much, after 80 three times, and so on. Infinite techs (mining productivity, damage upgrades,
+research cost multiplier of the map follows that debt. With the default settings the whole red and
+green part of the tree (about 75 techs) already pushes it to roughly x8 if you never pay anything
+back, and the road to the rocket would end around x23. You won't let it get there, which is the
+point. Infinite techs (mining productivity, damage upgrades,
 the Space Age productivity ones) don't care about any of this, they cost what they always cost and
 don't add debt either.
 
