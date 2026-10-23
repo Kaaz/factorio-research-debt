@@ -169,3 +169,6 @@ Counting technologies per tier and the debt they add in total if nothing is paid
 222 counting techs, 37 debt in total; the default cap of x50 is never hit at base x1. At base x4 the cap is
 reached around the 110th tech. Exponential mode with step 0.1 explodes (1.1^75 ≈ 1270) and only makes
 sense with a step of about 0.02–0.03. The portal/README texts quote the x8 / x23 figures.
+
+- 2026-10-23: Factorio 2.1 became the stable release. 2.0 support stops at 2.0.0 (left on the portal); the
+  workflow and tools default to the 2.1 line only.

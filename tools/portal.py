@@ -1,7 +1,7 @@
 """Factorio mod portal client for this repository.
 
     python tools/portal.py publish   # first publication (zip + description, category, license, source)
-    python tools/portal.py upload    # add the dist zips (2.1 and 2.0 lines) as releases, skipping existing ones
+    python tools/portal.py upload    # add the dist zip as a release (skipped when that version already exists)
     python tools/portal.py details   # push portal/summary.txt, description.md, faq.md, meta.json
     python tools/portal.py images    # upload dist/portal-images/*.png and set their order
     python tools/portal.py release   # upload + details (what the GitHub workflow runs)
@@ -121,7 +121,7 @@ def upload_zip(key, zp):
 
 
 def cmd_upload(key, args):
-    lines = args.lines or [info()["factorio_version"], "2.0"]
+    lines = args.lines or [info()["factorio_version"]]  # 2.0 support ended with 2.0.0; pass --lines 2.1 2.0 to build both
     for line in dict.fromkeys(lines):
         upload_zip(key, zip_path(line))
 
@@ -188,7 +188,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("command", choices=["publish", "upload", "details", "images", "release"])
     ap.add_argument("--key-file", default=None, help="file with the API key (ignored when FACTORIO_API_KEY is set)")
-    ap.add_argument("--lines", nargs="*", default=None, help='Factorio lines to upload (default: info.json line and 2.0)')
+    ap.add_argument("--lines", nargs="*", default=None, help='Factorio lines to upload (default: the info.json line only)')
     args = ap.parse_args()
     key = load_key(args.key_file)
     {"publish": cmd_publish, "upload": cmd_upload, "details": cmd_details,

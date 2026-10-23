@@ -11,10 +11,9 @@ left alone completely: they cost what they always cost and don't add debt either
 
 The point is that you can pay the debt off again, and every way of doing that costs you something
 else. Ctrl+K opens a window in game that tells you where the debt came from and what each option
-would do. Works with and without Space Age, on Factorio 2.0 (stable) and 2.1 (experimental).
+would do. Works with and without Space Age. Factorio 2.1.
 
-Zips: `python build.py` for the 2.1 line, `python build.py --factorio 2.0` for the 2.0 line (same source, only
-`info.json` differs). Or copy the
+Zip: `python build.py` builds `dist/research-debt_<version>.zip`. Or copy the
 `research-debt` folder into your mods folder as `research-debt_0.1.0`.
 
 ## How it works

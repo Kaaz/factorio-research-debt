@@ -34,9 +34,9 @@ creds.txt             (git-ignored) "key=<portal API key>"; never commit, never 
 
 ## 2. Conventions
 
-- One source for both Factorio lines. `info.json` is the 2.1 line; the 2.0 zip is derived at build time.
-- Mod version = Factorio line + patch: 2.1.x for Factorio 2.1 (experimental), 2.0.x for 2.0 (stable).
-  Both get the same patch number and the same features. Bump only the patch in `info.json`.
+- Mod version = Factorio line + patch: 2.1.x for Factorio 2.1. Bump only the patch in `info.json`.
+- Factorio 2.0 was served once (2.0.0, identical features) and is not updated anymore since 2.1 became stable.
+  `build.py --factorio 2.0` and the WSL test run still exist should that ever be needed again.
 - `storage.debt` is the single source of truth. Every change goes through `Debt.add(delta, reason, detail)`,
   which logs one line (`[research-debt] debt a -> b (+d) reason=...`) and refreshes the GUI. Never write
   `game.difficulty_settings.technology_price_multiplier` anywhere else.
@@ -82,7 +82,7 @@ Startup settings are tested at their defaults: they live in the binary `mod-sett
 deletes before a run so new defaults take effect. Runtime settings are changed through
 `remote.call("research-debt","set_setting",name,value)` (only the owning mod may write them).
 
-Both runs must be green before a release.
+The 2.1 run must be green before a release; the 2.0 run only matters if a 2.0 release is made.
 
 ### Client check (GUI)
 
@@ -113,17 +113,16 @@ Check the log for `GUI error` afterwards; the script prints the count. Copy the 
    ```
 
 4. The workflow `.github/workflows/release.yml` then: checks that the tag matches `info.json`, runs
-   `python build.py --all`, creates a GitHub release with both zips and the changelog block as notes,
-   uploads both zips to the mod portal (versions already there are skipped) and pushes the texts from
-   `portal/`. The portal steps run only when the repository secret `FACTORIO_API_KEY` is set
+   `python build.py`, creates a GitHub release with the zip and the changelog block as notes, uploads the
+   zip to the mod portal (a version already there is skipped) and pushes the texts from `portal/`. The portal steps run only when the repository secret `FACTORIO_API_KEY` is set
    (Settings → Secrets and variables → Actions). Create the key at https://factorio.com/profile with the
    usages "ModPortal: Upload Mods" and "ModPortal: Edit Mods".
 
 Manual equivalents, with the key in `creds.txt`:
 
 ```bash
-python build.py --all
-python tools/portal.py upload  --key-file creds.txt   # both zips
+python build.py
+python tools/portal.py upload  --key-file creds.txt
 python tools/portal.py details --key-file creds.txt   # summary, description, FAQ, category, tags, license, links
 python tools/portal.py images  --key-file creds.txt   # gallery, from dist/portal-images (see PORTAL.md)
 ```
