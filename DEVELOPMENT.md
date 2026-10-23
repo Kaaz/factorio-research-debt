@@ -21,7 +21,7 @@ research-debt/        the mod itself (this folder, and only this folder, ends up
   scripts/config.lua  presets; every balance value is resolved here (preset wins over settings)
   scripts/bonus.lua   lab speed curve and consolidation milestones
   scripts/gui.lua     window, HUD button, lab panel
-  locale/en, locale/nl   one .cfg per feature; a section may not repeat inside one file
+  locale/en, locale/nl   locale.cfg (names, settings, messages) and gui.cfg (window); a section may not repeat inside one file
   changelog.txt       Factorio changelog format; the first "Version:" is the current one
   thumbnail.png       144x144, shown on the portal
 portal/               texts and metadata for the portal page (summary, description, FAQ, meta.json)
@@ -57,6 +57,8 @@ creds.txt             (git-ignored) "key=<portal API key>"; never commit, never 
 - All user-facing text goes through locale keys (English and Dutch). New keys go in the .cfg of the feature;
   add a new file rather than repeating a section in an existing one (Factorio rejects duplicates).
 - Docs and portal texts are English, written in the author's own voice (see PORTAL.md and portal/).
+- One story for every text: technical debt. Rushed research leaves a mess, labs work around it, you clean up
+  (consolidate, file reference samples, careful mode, dump lab waste, retire a technology). See NOTES.md.
 
 ## 3. Local setup
 

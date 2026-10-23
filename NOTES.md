@@ -221,3 +221,12 @@ Presets: relaxed 20% / 0.35 / 1.25, standard 15% / 0.25 / 1.3, hardcore 12% / 0.
   level): visible in the research screen, applied/reverted by the game, no script bookkeeping, no chat message.
 - `game.take_screenshot{show_gui=true}` does not capture the vanilla technology screen (`open_technology_gui`), only
   mod GUIs and the HUD; a tech-screen image for the portal has to be taken by hand.
+
+## Framing: technical debt (2026-10-23)
+
+All user-facing text tells one story. Rushed technologies leave technical debt (undocumented prototypes,
+half-tested recipes, scattered notes); labs work around it, so research costs more. Mapping:
+Knowledge Consolidation = labs stop and clean up; Reference Archive = file working samples for good;
+careful mode = labs double-check (lab slowdown trade); dump lab waste = evolution trade; retire a technology =
+forget trade; clean labs run faster = the lab speed curve. New texts must stay inside this frame.
+Locale files were merged into locale.cfg (names, settings, messages) and gui.cfg (window) per language.

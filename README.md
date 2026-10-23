@@ -3,7 +3,9 @@
 A Factorio 2.1 mod that makes research cost something.
 
 I always felt research in Factorio is a bit of a no-brainer: queue everything, build more labs,
-done. With this mod research becomes something you manage, like power or ore patches.
+done. With this mod research has a cost that fits the engineer: *technical debt*. Every technology
+you rush through leaves undocumented prototypes and half-tested recipes behind, your labs work
+around the mess, and research gets more expensive until you clean up.
 
 A game goes like this. You start normally; the first technology you finish adds a little *debt* and
 research now costs ×1.05, the next one ×1.10, and so on, more per tech the higher its science tier.
@@ -60,7 +62,7 @@ level of III is about 15 000).
 A reversed level gives back exactly what it removed, and levels of all tiers count together for the
 milestones.
 
-**The Archive.** A chest with its own cheap tech. Items with a value in `scripts/values.lua` are
+**The Reference Archive.** A chest with its own cheap tech. Items with a value in `scripts/values.lua` are
 eaten once per second and lower the debt; the rest stays in the chest. Quality counts
 (uncommon ×1.6 up to legendary ×4). Diminishing returns: the value of every extra point is
 `1 / (1 + total points ever archived / 1000)`, so the Archive is never a free dump for overflow.

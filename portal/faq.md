@@ -1,8 +1,12 @@
+**Why "debt"?**
+Technical debt: the mess you leave behind when you rush things into production. Every technology adds
+some, your labs work around it, research gets more expensive. Cleaning up is the game.
+
 **Does it make infinite research more expensive?**
-No. They ignore the multiplier and don't add debt.
+No. They ignore the multiplier and leave no debt.
 
 **I added the mod to my existing save and research is suddenly many times the price.**
-That's the debt for everything you already researched. Either pay it down, lower the maximum
+That's the debt for everything you already researched. Either clean it up, lower the maximum
 multiplier in the map settings, or /rd-reset (admin) to start at zero.
 
 **The multiplier went up while something was researching. Did I lose progress?**
@@ -18,5 +22,5 @@ In game: the Research Debt window shows every value for your current preset and 
 README on GitHub has the full tables.
 
 **Multiplayer / PvP?**
-One global multiplier for everybody. Lab trades, requests and the lab speed curve are per force.
+One global multiplier for everybody. Careful mode, requests and the lab speed curve are per force.
 Untested in real multiplayer so far.

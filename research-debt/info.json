@@ -1,11 +1,11 @@
 {
   "name": "research-debt",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "title": "Research Debt",
   "author": "Maik",
   "homepage": "https://github.com/Kaaz/factorio-research-debt",
   "factorio_version": "2.1",
-  "description": "Every non-infinite technology you research raises a global research cost multiplier. Pay the debt back through Knowledge Consolidation research or by sacrificing items in an Archive.",
+  "description": "Every technology you rush through leaves technical debt behind and research gets more expensive. Clean up by consolidating knowledge, filing reference samples in an archive, or giving something else up. Clean labs run faster.",
   "dependencies": [
     "base >= 2.1",
     "? space-age",

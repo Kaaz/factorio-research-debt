@@ -95,6 +95,14 @@ steps[#steps + 1] = function(player)
   game.print("[rd-gui-selftest] DONE")
 end
 
+-- Skip the freeplay intro and crash site so the check runs without any key press.
+script.on_init(function()
+  if remote.interfaces["freeplay"] then
+    if remote.interfaces["freeplay"]["set_skip_intro"] then remote.call("freeplay", "set_skip_intro", true) end
+    if remote.interfaces["freeplay"]["set_disable_crashsite"] then remote.call("freeplay", "set_disable_crashsite", true) end
+  end
+end)
+
 script.on_event(defines.events.on_tick, function(event)
   local player = game.get_player(1)
   if not player then return end

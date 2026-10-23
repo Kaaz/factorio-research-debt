@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.1.2
+Date: 2026-10-23
+  Changes:
+    - All texts now tell one story: technical debt. Rushed technologies leave undocumented work behind, labs work around it, research costs more. Knowledge Consolidation cleans up, the Archive is now the Reference Archive, careful mode / dumping lab waste / retiring a technology replace the trade jargon.
+    - Locale files merged into two per language.
+---------------------------------------------------------------------------------------------------
 Version: 2.1.1
 Date: 2026-10-23
   Features:
