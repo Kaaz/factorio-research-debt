@@ -3,18 +3,19 @@
 A Factorio 2.1 mod that makes research cost something.
 
 I always felt research in Factorio is a bit of a no-brainer: queue everything, build more labs,
-done. With this mod every technology you finish adds *debt*, and the research cost multiplier of
-the map follows that debt. With the defaults, the red and green part of the tree alone (about 75
-techs) would take it to roughly ×8 if you never paid anything back, and the road to the rocket to
-about ×23. Infinite techs (mining productivity, damage upgrades, the Space Age productivity ones) are
-left alone completely: they cost what they always cost and don't add debt either.
+done. With this mod research becomes something you manage, like power or ore patches.
 
-The point is that you can pay the debt off again, and every way of doing that costs you something
-else. Ctrl+K opens a window in game that tells you where the debt came from and what each option
-would do. Works with and without Space Age. Factorio 2.1.
+A game goes like this. You start normally; the first technology you finish adds a little *debt* and
+research now costs ×1.05, the next one ×1.10, and so on, more per tech the higher its science tier.
+If you keep queueing like before, the red and green part of the tree alone leaves you at roughly ×8,
+and the rocket would come at about ×23. So at some point you open the window (Ctrl+K) and pay some of
+it back: an infinite research that gets pricier per level, an Archive that eats valuable items (and
+asks for specific ones at triple value), or trades: slower labs, higher evolution, forgetting a tech.
+Then you research the next batch. Infinite technologies are never touched, and at zero debt your labs
+run 20% faster. Works with and without Space Age. Factorio 2.1.
 
 Zip: `python build.py` builds `dist/research-debt_<version>.zip`. Or copy the
-`research-debt` folder into your mods folder as `research-debt_0.1.0`.
+`research-debt` folder into your mods folder as `research-debt_<version>`.
 
 ## How it works
 
