@@ -24,8 +24,13 @@ for tier, t in ipairs(Consolidation.TIERS) do
         name = t.name,
         icons = cons_icons,
         localised_name = { "technology-name." .. t.name },
-        localised_description = { "technology-description.rd-consolidation", tostring(tier), tostring(#Consolidation.TIERS) },
-        effects = { { type = "nothing", effect_description = { "technology-effect.rd-consolidation" } } },
+        localised_description = { "technology-description.rd-consolidation", tostring(tier), tostring(#Consolidation.TIERS),
+          string.format("%d%%", math.floor(Config.consolidation_percent(tier) * 100 + 0.5)),
+          (t.max_level == "infinite") and { "technology-description.rd-consolidation-infinite" } or { "technology-description.rd-consolidation-finite", tostring(t.max_level) } },
+        effects = {
+          { type = "nothing", effect_description = { "technology-effect.rd-consolidation" } },
+          { type = "laboratory-productivity", modifier = Config.Curve.milestone_bonus }, -- shown in the tech screen, applied by the game
+        },
         prerequisites = t.prerequisites,
         unit = {
           count_formula = Config.consolidation_formula(tier),

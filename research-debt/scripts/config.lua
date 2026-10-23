@@ -34,8 +34,7 @@ Config.Presets = {
 Config.Curve = {
   bonus_steps = { { max_debt = 0.0, factor = 1.0 }, { max_debt = 0.5, factor = 0.5 }, { max_debt = 1.0, factor = 0.25 } },
   penalty_steps = { { from_threshold = 0, factor = 1 }, { from_threshold = 2.0, factor = 2 } }, -- threshold, threshold + 2
-  milestone_levels = 5,     -- Knowledge Consolidation levels per milestone
-  milestone_bonus = 0.02,   -- laboratory productivity per milestone
+  milestone_bonus = 0.01,   -- laboratory productivity per Knowledge Consolidation level (native technology effect)
 }
 
 function Config.preset_name()
@@ -164,7 +163,7 @@ function Config.resolved()
     archive_half_life = Config.archive_half_life(), request_interval = Config.request_interval(),
     bonus_peak = Config.bonus_peak(), penalty_threshold = Config.penalty_threshold(), penalty = Config.penalty(),
     max_multiplier = Config.max_multiplier(),
-    milestone_levels = Config.Curve.milestone_levels, milestone_bonus = Config.Curve.milestone_bonus,
+    milestone_bonus = Config.Curve.milestone_bonus,
   }
 end
 

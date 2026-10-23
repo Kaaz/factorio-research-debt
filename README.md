@@ -77,8 +77,8 @@ available at 95%+. Or forget a technology nothing else depends on: you lose its 
 and get back exactly the debt it added.
 
 **Lab speed follows the debt.** At zero debt all labs run 20% faster, below 0.5 10%, below 1.0 5%.
-Above 3.0 they run 10% slower, above 5.0 20% slower, until you pay some back. Every 5 levels of
-Knowledge Consolidation add a permanent 2% lab productivity.
+Above 3.0 they run 10% slower, above 5.0 20% slower, until you pay some back. Every level of
+Knowledge Consolidation adds a permanent 1% lab productivity, as a regular technology effect.
 
 **Presets.** Relaxed, Standard (tuned for experienced players) and Hardcore set the step, the
 consolidation cost and value, the Archive half-life, the request interval, the lab curve and the

@@ -33,11 +33,6 @@ local function on_research_finished(event)
     storage.stats.consolidation_debt = storage.stats.consolidation_debt - x
     local _, m = Debt.add(-x, "consolidation", proto.name .. " level " .. (tech.researched and tech.level or tech.level - 1), force)
     notify(force, "research-debt.msg-consolidation", fmt(x), fmt(m))
-    local levels = Consolidation.levels_completed(force)
-    local reached, total = Bonus.update_milestones(force, levels)
-    if reached then
-      notify(force, "research-debt.msg-milestone", levels, string.format("%d%%", math.floor(total * 100 + 0.5)))
-    end
     return
   end
   -- any technology may unlock the next consolidation tier
@@ -60,7 +55,6 @@ local function on_research_reversed(event)
     storage.stats.consolidation_levels = math.max(0, storage.stats.consolidation_levels - 1)
     storage.stats.consolidation_debt = storage.stats.consolidation_debt + x
     Debt.add(x, "consolidation-reversed", proto.name, tech.force)
-    Bonus.update_milestones(tech.force, Consolidation.levels_completed(tech.force))
     return
   end
   Consolidation.update_tiers(tech.force)
@@ -256,7 +250,8 @@ remote.add_interface("research-debt", {
   end,
   bonus = function(force_name)
     local f = game.forces[force_name or "player"]
-    return { modifier = Bonus.current_modifier(), applied = Bonus.applied(f), milestones = Bonus.milestones_applied(f),
+    return { modifier = Bonus.current_modifier(), applied = Bonus.applied(f),
+             consolidation_levels = Consolidation.levels_completed(f),
              lab_speed = f.laboratory_speed_modifier, lab_productivity = f.laboratory_productivity_bonus }
   end,
   config = function() return Config.resolved() end,

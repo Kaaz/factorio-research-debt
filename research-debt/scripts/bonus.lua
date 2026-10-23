@@ -1,7 +1,7 @@
 -- Lab speed curve: faster labs while the debt is low, slower labs while it is high.
--- Plus Knowledge Consolidation milestones: permanent lab productivity per N levels.
--- Both are additive force modifiers tracked per force so they can be removed exactly and
--- re-applied after reset_technology_effects().
+-- An additive force modifier tracked per force so it can be removed exactly and re-applied
+-- after reset_technology_effects(). (The lab productivity per Knowledge Consolidation level is a
+-- native technology effect, applied by the game itself.)
 local Config = require("scripts.config")
 
 local Bonus = {}
@@ -32,44 +32,16 @@ function Bonus.update()
   end
 end
 
--- Milestones -----------------------------------------------------------------
-
-function Bonus.milestone_target(levels_completed)
-  local C = Config.Curve
-  return math.floor(levels_completed / C.milestone_levels) * C.milestone_bonus
-end
-
--- levels_completed: finished levels of Knowledge Consolidation for this force
-function Bonus.update_milestones(force, levels_completed)
-  storage.milestone_applied = storage.milestone_applied or {}
-  local want = Bonus.milestone_target(levels_completed)
-  local have = storage.milestone_applied[force.name] or 0
-  if math.abs(want - have) > 1e-9 then
-    force.laboratory_productivity_bonus = force.laboratory_productivity_bonus - have + want
-    storage.milestone_applied[force.name] = want
-    return true, want
-  end
-  return false, want
-end
-
 -- reset_technology_effects() recomputed the modifiers from technologies: add ours again.
 function Bonus.reapply(force)
   local have = storage.bonus_applied and storage.bonus_applied[force.name] or 0
   if have ~= 0 then
     force.laboratory_speed_modifier = force.laboratory_speed_modifier + have
   end
-  local m = storage.milestone_applied and storage.milestone_applied[force.name] or 0
-  if m ~= 0 then
-    force.laboratory_productivity_bonus = force.laboratory_productivity_bonus + m
-  end
 end
 
 function Bonus.applied(force)
   return storage.bonus_applied and storage.bonus_applied[force.name] or 0
-end
-
-function Bonus.milestones_applied(force)
-  return storage.milestone_applied and storage.milestone_applied[force.name] or 0
 end
 
 -- For the GUI: current step of the curve and the nearest better / worse steps.

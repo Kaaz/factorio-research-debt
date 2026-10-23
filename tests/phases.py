@@ -307,16 +307,16 @@ def bonus(env, t):
     for _ in range(5):
         level_up(env, INF)
     b = env.lua_json('remote.call("research-debt","bonus","player")')
-    t.approx("5 consolidation levels: +0.02 lab productivity", b["lab_productivity"] - prod0, 0.02)
+    t.approx("5 consolidation levels: +0.05 lab productivity", b["lab_productivity"] - prod0, 0.05)
     for _ in range(5):
         level_up(env, INF)
-    t.approx("10 levels: +0.04", env.lua_json("game.forces.player.laboratory_productivity_bonus") - prod0, 0.04)
+    t.approx("10 levels: +0.10", env.lua_json("game.forces.player.laboratory_productivity_bonus") - prod0, 0.10)
     env.lua("game.forces.player.reset_technology_effects()")
-    t.approx("milestones survive reset_technology_effects", env.lua_json("game.forces.player.laboratory_productivity_bonus") - prod0, 0.04)
+    t.approx("productivity survives reset_technology_effects (native effect)", env.lua_json("game.forces.player.laboratory_productivity_bonus") - prod0, 0.10)
     for _ in range(4):
-        level_down(env, INF)  # forget four levels: milestone drops to +0.02
+        level_down(env, INF)  # forget four levels: bonus drops to +0.06
     env.lua('game.forces.player.technologies["space-science-pack"].researched=false')
-    t.approx("forgotten levels lower the milestone bonus", env.lua_json("game.forces.player.laboratory_productivity_bonus") - prod0, 0.02)
+    t.approx("forgotten levels lower the milestone bonus", env.lua_json("game.forces.player.laboratory_productivity_bonus") - prod0, 0.06)
     env.lua('remote.call("research-debt","reset")')
 
 

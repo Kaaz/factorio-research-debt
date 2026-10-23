@@ -8,6 +8,10 @@
   game window on the user's screen, say so before running it.
 - Never touch `%APPDATA%\Factorio` except to copy the mod folder there when the user asks and Factorio is closed.
 - `creds.txt` holds the portal API key: git-ignored, never print it, never commit it.
+- The bar is "Wube could have shipped this": integrate as natively as possible. Technology effects, prototypes,
+  vanilla GUI anchors, the research screen and vanilla styles come first; script-side bookkeeping only where the
+  game has no mechanism (debt -> multiplier, the lab curve). Prefer the way vanilla already shows something over
+  a chat message or a custom element.
 - All debt changes go through `Debt.add`; balance numbers go in the tables, not in logic; user-facing text
   goes through locale keys in English and Dutch.
 - Docs and portal texts are English, in the author's own voice (plain, first person, no marketing tone).

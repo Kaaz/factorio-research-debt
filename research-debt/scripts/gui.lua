@@ -221,12 +221,9 @@ local function build_consolidation_card(parent, player, s)
   local after = Debt.compute_multiplier(math.max(0, s.debt - value))
   add_para(c, { "research-debt.gui-cons-text-percent", fmt_pct(cs.percent), fmt2(s.consolidation_min),
     fmt2(value), fmtx(after) }, 560)
-  local C = Config.Curve
-  local done = cs.levels_completed
-  local next_ms = (math.floor(done / C.milestone_levels) + 1) * C.milestone_levels
-  add_label(c, { "research-debt.gui-cons-milestone", fmt_pct(C.milestone_bonus), C.milestone_levels, next_ms,
-    fmt_signed_pct(Bonus.milestones_applied(force)) }, "label", Bonus.milestones_applied(force) > 0 and GREEN or GREY,
-    { "research-debt.gui-cons-milestone-tooltip" })
+  local applied = cs.levels_completed * Config.Curve.milestone_bonus
+  add_label(c, { "research-debt.gui-cons-milestone-each", fmt_pct(Config.Curve.milestone_bonus), cs.levels_completed, fmt_signed_pct(applied) },
+    "label", applied > 0 and GREEN or GREY, { "research-debt.gui-cons-milestone-tooltip" })
   if cs.max_level ~= "infinite" then
     add_label(c, { "research-debt.gui-cons-cost-finite", cs.level, cs.max_level, fmt_int(cs.units), ingredients_rich(cs.ingredients) }, "label", GREY)
   else

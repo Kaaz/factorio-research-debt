@@ -35,6 +35,12 @@ creds.txt             (git-ignored) "key=<portal API key>"; never commit, never 
 
 ## 2. Conventions
 
+- The bar is "Wube could have shipped this". If the game can express it (technology effects, prototypes,
+  vanilla GUI anchors, the research screen, vanilla styles and icons), do it that way; script only what the game
+  has no mechanism for (debt -> multiplier, the lab curve). Prefer what vanilla already shows over a chat message
+  or a custom element. Example: lab productivity per Knowledge Consolidation level is a `laboratory-productivity`
+  tech effect, listed in the research screen like any other bonus.
+
 - Versions count up from 2.1.1: bug fixes bump the patch, new mechanics the minor (2.2.0), an overhaul the
   major. The "2" no longer tracks the Factorio line (see PORTAL.md for the history).
 - Factorio 2.0 was served once (2.0.0, identical features) and is not updated anymore since 2.1 became stable.
@@ -155,7 +161,7 @@ reference for experienced players. The individual settings below only apply with
   returns, quality bonus, request bonus/target/limits/queue size).
 - Trades: `Trades.Balance` (lab step and max, evolution step and cap, debt per trade).
 - Lab curve: peak `rd-debt-free-bonus`, penalty `rd-penalty-threshold` / `rd-penalty` (Custom), shape in
-  `Config.Curve`; milestones `Config.Curve.milestone_levels` / `milestone_bonus`.
+  `Config.Curve`; lab productivity per consolidation level `Config.Curve.milestone_bonus` (a native tech effect).
 - Limits: `rd-max-multiplier`, `rd-min-multiplier` (map settings).
 
 After changing a number, run the headless suite: most checks compute their expectations from the live
