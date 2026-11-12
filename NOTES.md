@@ -230,3 +230,56 @@ Knowledge Consolidation = labs stop and clean up; Reference Archive = file worki
 careful mode = labs double-check (lab slowdown trade); dump lab waste = evolution trade; retire a technology =
 forget trade; clean labs run faster = the lab speed curve. New texts must stay inside this frame.
 Locale files were merged into locale.cfg (names, settings, messages) and gui.cfg (window) per language.
+
+## Lab speed as hidden technologies (user feedback, 2026-11-12)
+
+- A player reported that careful mode could create debt out of nothing and that labs "forgot" the careful penalty.
+  Both confirmed over RCON on 2.1.23:
+  - `Debt.add` clamps at 0, so a careful step at debt 0.13 cleared only 0.13, but undo gave back the full 0.25.
+    Every careful step now stores what it really cleared (`storage.trades[force].lab_cleared`); undo returns
+    exactly that. The trade stats book the cleared amount too (the evolution trade had the same mistake).
+  - Script additions to `laboratory_speed_modifier` survive `reset_technology_effects` (via the event),
+    `research_all_technologies`, save/load and a mod update, but **not `force.reset()`**: that sets every modifier
+    to default and only raises `on_force_reset`. Any other mod writing the modifier absolutely wipes them as well.
+- Fix in the native direction: three hidden infinite technologies carry the effects, `rd-lab-bonus` (+0.5% per
+  level), `rd-lab-penalty` (-0.5%) and `rd-careful-mode` (-10%). The script only sets `tech.level`
+  (finished levels = level - 1); the game applies and keeps the modifier.
+- Verified on 2.1.23: writing `level` on an infinite tech applies or reverses the effects immediately, raises one
+  `on_research_finished` per level (and `on_research_reversed` when lowering), and sets `enabled = true` (the mod
+  sets it back to false). 1000 levels in one write work. `research_all_technologies` leaves the level alone,
+  `force.reset()` puts it back to 1 (the mod re-syncs in `on_force_reset`), `reset_technology_effects` keeps it.
+- The mod re-syncs the levels on `on_force_reset` and in the 60-tick watchdog. Never write the level back from
+  inside `on_research_finished/reversed` for that tech: the game raises those per level while it is still applying
+  someone else's write, and writing back ping-pongs forever (the test server hung).
+- Migration from 2.1.2: `storage.bonus_applied` marks an old save; `reset_technology_effects()` drops the old
+  script additions (intact or already lost) and the hidden techs take over. Tested with a real 2.1.2 save.
+- Custom preset values are rounded to 0.5% lab speed.
+- Script pollution counts for evolution: `surface.pollute` of 200k on Nauvis took evolution from 0 to 0.165
+  (`pollution_factor` 9e-7). Basis for a pollution-based lab waste trade later.
+
+## Boundary audit (2026-11-12)
+
+- `LuaPlayer.surface` is the surface the player is *looking at* (remote view); `physical_surface` is where the
+  character is. Lab waste uses `physical_surface` and needs an enemy `unit-spawner` on it (not a platform).
+- `force.reset()` un-researches every technology **without** `on_research_reversed` (debt stayed at 28.9 in the
+  experiment): `on_force_reset` now recalculates the debt.
+- `on_configuration_changed` gets `mod_startup_settings_changed`; the debt is recalculated then, because
+  `Debt.step_for` depends on step, tier scaling and preset.
+- Every reduction (careful mode, lab waste, archive) books what `Debt.add` really applied, never the nominal value.
+- `Config.Curve.max_slowdown` (0.75) caps curve penalty + careful mode; the curve penalty yields first.
+- `rd-trades-admin-only` (runtime-global, default on) gates the trade buttons; the remote interface is not gated.
+- Still open from the audit: per-force consolidation undo stack, custom tier IV percent above 100%, base multiplier
+  limits when the map multiplier is not 1, stale requests after removing Space Age, multi-level finite techs of other
+  mods in recalculation, power armor equipment in the archive, watchdog history spam.
+- Not testable headless: the admin-only gate (no players) and the startup-settings recalculation (mod-settings.dat).
+
+## Removing the mod (2026-11-12)
+
+- Verified by removing the mod from a save: lab speed and lab productivity from `rd-*` technologies are gone
+  (the game drops effects of technologies whose prototypes disappeared); `technology_price_multiplier` stays at
+  its last value (3.25 in the test). So the uninstall path only has to restore the multiplier.
+- `/rd-uninstall` sets `storage.uninstalled`; `Debt.compute_multiplier` then returns the base, so the watchdog
+  keeps it there. Archive processing and requests pause. Research is still counted, so `/rd-uninstall cancel`
+  is seamless.
+- Re-adding the mod to a save with an old multiplier reads it as base (no way to tell it apart from a map
+  setting); the mod warns in chat when the base is not 1, and `/rd-set-base 1` corrects it.

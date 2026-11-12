@@ -1,4 +1,22 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.1.3
+Date: 2026-11-12
+  Bugfixes:
+    - Careful mode could create debt out of nothing: a step taken with less than 0.25 debt left cleared only what was left, but undoing it added the full 0.25 back. Undo now gives back exactly what the step cleared. The lab waste trade booked the same wrong amount in the statistics.
+    - Labs could lose the careful mode slowdown and the lab speed curve, for example after a force reset, after which undoing careful mode made labs faster than normal.
+    - Dumping lab waste worked on any surface you were looking at, including space platforms and planets without enemies, where it cost nothing. It now needs enemy nests on the surface you are standing on.
+    - The Reference Archive ate samples while there was no debt left, and booked the full value in its statistics even when the debt stopped at zero. Samples now stay in the chest at zero debt.
+    - Changing startup settings (preset, step, tier scaling) on an existing save now derives the debt again, so retiring a technology gives back what it added under the current settings.
+    - A force reset un-researches everything without telling mods; the debt is now derived again afterwards, so technologies researched again are not counted twice.
+    - Merging forces kept the debt cleared by the merged force's careful mode while its slowdown disappeared. That debt now comes back.
+  Features:
+    - /rd-uninstall (admin): run it before removing the mod. Research costs go back to the map's own multiplier, the only thing Factorio would not clean up by itself. /rd-uninstall cancel keeps the mod after all.
+    - /rd-set-base (admin) sets the map's own multiplier the debt is added to. Adding the mod to a save whose multiplier is not 1 now warns in chat.
+  Changes:
+    - Careful mode needs labs of your own, and trades are admin-only in multiplayer by default (map setting).
+    - The lab slowdown from debt and careful mode together never goes past 75%, so labs never stop.
+    - The lab speed curve and careful mode are now carried by hidden technologies with a lab speed effect, so the game itself keeps them. Existing saves are converted on load.
+---------------------------------------------------------------------------------------------------
 Version: 2.1.2
 Date: 2026-10-23
   Changes:

@@ -4,7 +4,7 @@ Usage:
     python tests/run.py                 # full run (Space Age if installed)
     python tests/run.py --no-space-age  # vanilla only
     python tests/run.py --keep          # keep the test environment after the run
-    python tests/run.py --only phase1   # run a subset (phase1, phase2, phase3, persist, existing, nosa)
+    python tests/run.py --only phase1   # run a subset (phase1, phase2, phase3, persist, existing, labs, uninstall, nosa)
 
 Nothing in the user's normal Factorio folders is touched: a separate write-data
 folder (config, mods, saves, log) is used via --config.
@@ -413,6 +413,12 @@ def main():
             persist(env, t, save)
         if want("existing"):
             existing_save(env, t)
+        if want("labs"):
+            from phases import labs
+            labs(env, t)
+        if want("uninstall"):
+            from phases import uninstall
+            uninstall(env, t)
         env.stop_server()
         errs = env.log_errors()
         t.check("no Lua errors in log", not errs, "; ".join(errs)[:300])

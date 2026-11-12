@@ -73,7 +73,12 @@ which you can switch off.
 - Won't play nice with other mods that also set the technology price multiplier.
 - With the Custom preset pretty much every number is a setting; the item values are in a plain Lua table
   if you want to tune them. The README on GitHub has all the exact numbers.
-- Commands: /rd-status, /rd-recalc, /rd-reset, /rd-gui. There's a remote interface for mod authors.
+- Removing the mod: run `/rd-uninstall` first, then save and remove it. The research cost multiplier is the
+  only thing the game wouldn't clean up by itself; lab speed and lab productivity are technology effects of
+  the mod and go away with it.
+- Trades are admin-only in multiplayer by default (map setting).
+- Commands: /rd-status, /rd-recalc, /rd-reset, /rd-uninstall, /rd-set-base, /rd-gui. There's a remote
+  interface for mod authors.
 - English and Dutch.
 
 The balance is a first attempt based on my own games. If something feels off, too steep, too easy, a

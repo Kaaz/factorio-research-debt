@@ -19,7 +19,7 @@ research-debt/        the mod itself (this folder, and only this folder, ends up
   scripts/requests.lua Archive requests and the upcoming queue
   scripts/trades.lua  lab speed / evolution / forget trades
   scripts/config.lua  presets; every balance value is resolved here (preset wins over settings)
-  scripts/bonus.lua   lab speed curve and consolidation milestones
+  scripts/bonus.lua   lab speed curve and careful mode as hidden, script-levelled technologies
   scripts/gui.lua     window, HUD button, lab panel
   locale/en, locale/nl   locale.cfg (names, settings, messages) and gui.cfg (window); a section may not repeat inside one file
   changelog.txt       Factorio changelog format; the first "Version:" is the current one
@@ -87,7 +87,9 @@ log. Your own Factorio data is never touched. It starts a headless server with R
 `/silent-command`, and checks about 136 things: multiplier rising, infinite techs immune, reversing, clamps,
 recalculation, running research, consolidation, Archive (quality, diminishing returns, requests, queue),
 trades, tiers, bonus, save/restart, adding the mod to an existing save, and the same without Space Age.
-`--only phase1 phase2 phase3 trades tiers bonus requests persist existing nosa` selects parts.
+`--only phase1 phase2 phase3 trades tiers bonus requests persist existing labs uninstall nosa` selects parts.
+`labs` covers the hidden lab technologies (resets, merges, the 2.1.2 save migration, which it builds from git
+commit 57a102e) and `uninstall` removes the mod from a save and checks nothing stays behind.
 
 Startup settings are tested at their defaults: they live in the binary `mod-settings.dat`, which the suite
 deletes before a run so new defaults take effect. Runtime settings are changed through
@@ -110,6 +112,7 @@ Check the log for `GUI error` afterwards; the script prints the count. Copy the 
 ### Playing
 
 `/rd-status` prints the state, `/rd-recalc` recounts, `/rd-reset` zeroes the debt and undoes trades,
+`/rd-uninstall` puts the multiplier back before removing the mod, `/rd-set-base x` corrects the base,
 `/rd-gui` toggles the window. The log line per debt change is the easiest way to see what happened.
 
 ## 5. Releasing

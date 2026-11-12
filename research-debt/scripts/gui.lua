@@ -376,6 +376,8 @@ local function build_trades_cards(parent, player, s)
   local B = Trades.Balance
   local ts = Trades.state(force)
   local nodebt = s.debt <= 0
+  local allowed = Trades.allowed(player)
+  if not allowed then add_label(parent, { "research-debt.gui-trade-admin-only" }, "label", GREY) end
 
   -- labs
   local c = card(parent, { "research-debt.gui-trade-lab-title" })
@@ -385,21 +387,22 @@ local function build_trades_cards(parent, player, s)
   local row = c.add({ type = "flow", direction = "horizontal" })
   local spacer = row.add({ type = "empty-widget" })
   spacer.style.horizontally_stretchable = true
-  local undo = row.add({ type = "button", caption = { "research-debt.gui-trade-lab-restore", fmt_pct(B.lab_step), fmt2(B.lab_debt) }, tags = { rd_action = "trade_lab_undo" } })
-  undo.enabled = ts.lab_steps > 0
-  local slow = row.add({ type = "button", caption = { "research-debt.gui-trade-lab-slow", fmt_pct(B.lab_step), fmt2(B.lab_debt) }, tags = { rd_action = "trade_lab" } })
-  slow.enabled = ts.lab_steps < ts.lab_max_steps and not nodebt
+  local undo_value = ts.lab_cleared[ts.lab_steps] or B.lab_debt
+  local undo = row.add({ type = "button", caption = { "research-debt.gui-trade-lab-restore", fmt_pct(B.lab_step), fmt2(undo_value) }, tags = { rd_action = "trade_lab_undo" } })
+  undo.enabled = allowed and ts.lab_steps > 0
+  local slow = row.add({ type = "button", caption = { "research-debt.gui-trade-lab-slow", fmt_pct(B.lab_step), fmt2(nodebt and B.lab_debt or Trades.lab_value()) }, tags = { rd_action = "trade_lab" } })
+  slow.enabled = allowed and ts.lab_steps < ts.lab_max_steps and not nodebt
   if nodebt then slow.tooltip = { "research-debt.gui-trade-nodebt" } end
 
   -- evolution
   c = card(parent, { "research-debt.gui-trade-evo-title" })
   add_para(c, { "research-debt.gui-trade-evo-text", fmt_pct(B.evo_step), fmt2(B.evo_debt) }, 560)
-  local surface = player.surface
+  local surface = player.physical_surface
   local evo = Trades.evolution_info(surface)
   row = c.add({ type = "flow", direction = "horizontal" })
   row.style.vertical_align = "center"
   if evo == nil then
-    add_label(row, { "research-debt.gui-trade-evo-none" }, "label", GREY)
+    add_label(row, game.forces["enemy"] and { "research-debt.gui-trade-evo-nospawners", surface.name } or { "research-debt.gui-trade-evo-none" }, "label", GREY)
   elseif evo >= B.evo_max then
     add_label(row, { "research-debt.gui-trade-evo-max", fmt_pct(B.evo_max) }, "label", RED)
   else
@@ -408,7 +411,7 @@ local function build_trades_cards(parent, player, s)
   spacer = row.add({ type = "empty-widget" })
   spacer.style.horizontally_stretchable = true
   local evo_btn = row.add({ type = "button", caption = { "research-debt.gui-trade-evo-button", fmt_pct(B.evo_step), fmt2(B.evo_debt) }, tags = { rd_action = "trade_evo" } })
-  evo_btn.enabled = evo ~= nil and evo < B.evo_max and not nodebt
+  evo_btn.enabled = allowed and evo ~= nil and evo < B.evo_max and not nodebt
   if nodebt then evo_btn.tooltip = { "research-debt.gui-trade-nodebt" } end
 
   -- forget
@@ -429,7 +432,8 @@ local function build_trades_cards(parent, player, s)
     dd.style.minimal_width = 320
     spacer = row.add({ type = "empty-widget" })
     spacer.style.horizontally_stretchable = true
-    row.add({ type = "button", caption = { "research-debt.gui-trade-forget-button" }, tags = { rd_action = "forget_tech" }, style = "red_button" })
+    local forget_btn = row.add({ type = "button", caption = { "research-debt.gui-trade-forget-button" }, tags = { rd_action = "forget_tech" }, style = "red_button" })
+    forget_btn.enabled = allowed
   end
 end
 
@@ -707,11 +711,14 @@ function Gui.on_click(event)
     local st = pstate(player.index)
     st.values_open = not st.values_open
     Gui.refresh(player)
+  elseif (action == "trade_lab" or action == "trade_lab_undo" or action == "trade_evo" or action == "forget_tech")
+      and not Trades.allowed(player) then
+    player.print({ "research-debt.admin-only" })
   elseif action == "trade_lab" then
     local ok, why = Trades.lab_slow(player.force)
     if ok then
       local ts, s = Trades.state(player.force), Debt.status()
-      player.force.print({ "research-debt.msg-trade-lab", fmt_pct(ts.lab_penalty), fmt2(Trades.Balance.lab_debt), fmt2(s.actual_multiplier) })
+      player.force.print({ "research-debt.msg-trade-lab", fmt_pct(ts.lab_penalty), fmt2(why), fmt2(s.actual_multiplier) })
     else
       player.print({ "research-debt.msg-trade-failed", tostring(why) })
     end
@@ -720,16 +727,16 @@ function Gui.on_click(event)
     local ok, why = Trades.lab_restore(player.force)
     if ok then
       local s = Debt.status()
-      player.force.print({ "research-debt.msg-trade-lab-undo", fmt_pct(Trades.Balance.lab_step), fmt2(Trades.Balance.lab_debt), fmt2(s.actual_multiplier) })
+      player.force.print({ "research-debt.msg-trade-lab-undo", fmt_pct(Trades.Balance.lab_step), fmt2(why), fmt2(s.actual_multiplier) })
     else
       player.print({ "research-debt.msg-trade-failed", tostring(why) })
     end
     Gui.refresh_all()
   elseif action == "trade_evo" then
-    local ok, result = Trades.evolution_trade(player.force, player.surface)
+    local ok, result = Trades.evolution_trade(player.force, player.physical_surface)
     if ok then
       local s = Debt.status()
-      player.force.print({ "research-debt.msg-trade-evo", player.surface.name, fmt_pct(result), fmt2(Trades.Balance.evo_debt), fmt2(s.actual_multiplier) })
+      player.force.print({ "research-debt.msg-trade-evo", player.physical_surface.name, fmt_pct(result), fmt2(Trades.Balance.evo_debt), fmt2(s.actual_multiplier) })
     else
       player.print({ "research-debt.msg-trade-failed", tostring(result) })
     end

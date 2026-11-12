@@ -145,7 +145,7 @@ end
 
 -- Periodic: draw a new request when due or expired.
 function Requests.tick()
-  if not Requests.enabled() then return end
+  if not Requests.enabled() or storage.uninstalled then return end
   local req = storage.request
   if req and game.tick >= req.expires_tick then
     storage.stats.requests_expired = (storage.stats.requests_expired or 0) + 1

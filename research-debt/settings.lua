@@ -62,6 +62,10 @@ data:extend({
     default_value = 0.1, minimum_value = 0.0, maximum_value = 0.9, order = "b-b5",
   },
   {
+    type = "bool-setting", name = "rd-trades-admin-only", setting_type = "runtime-global",
+    default_value = true, order = "b-b6",
+  },
+  {
     type = "bool-setting", name = "rd-chat-notifications", setting_type = "runtime-global",
     default_value = true, order = "b-c",
   },

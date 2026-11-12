@@ -53,6 +53,7 @@ end
 function Archive.process(entity)
   local inv = entity.get_inventory(defines.inventory.chest)
   if not inv or inv.is_empty() then return 0, 0 end
+  if (storage.debt or 0) <= 0 then return 0, 0 end -- nothing to clear: leave the samples in the chest
   local points, items = 0, 0
   for _, stack in pairs(inv.get_contents()) do
     local v = Values.value(stack.name)
@@ -73,14 +74,16 @@ function Archive.process(entity)
     local st = storage.stats
     st.archive_items = st.archive_items + items
     st.archive_points = st.archive_points + points
-    st.archive_debt = st.archive_debt + delta
-    local _, m = Debt.add(delta, "archive", string.format("%d items, %.1f points (%.1f effective)", items, points, effective), entity.force)
+    local old = storage.debt
+    local new, m = Debt.add(delta, "archive", string.format("%d items, %.1f points (%.1f effective)", items, points, effective), entity.force)
+    st.archive_debt = st.archive_debt - (old - new) -- what was really cleared (the debt stops at 0)
     show_text(entity, string.format("%+.3f debt  (x%.2f)", delta, m), { r = 0.5, g = 1, b = 0.5 })
   end
   return points, items
 end
 
 function Archive.process_all()
+  if storage.uninstalled then return end -- samples stay in the chest while the mod is being removed
   for unit_number, entity in pairs(storage.archives) do
     if entity.valid then
       Archive.process(entity)

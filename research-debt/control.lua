@@ -24,6 +24,7 @@ local function on_research_finished(event)
   if not (tech and tech.valid) then return end
   local proto = tech.prototype
   local force = tech.force
+  if Bonus.is_lab_tech(proto.name) then Bonus.on_research_event(tech) return end
   if Consolidation.is(proto.name) then
     local tier = Consolidation.tier_of(proto.name) or 1
     local x = math.min(storage.debt, Debt.consolidation_value(storage.debt, tier))
@@ -49,6 +50,7 @@ local function on_research_reversed(event)
   local tech = event.research
   if not (tech and tech.valid) then return end
   local proto = tech.prototype
+  if Bonus.is_lab_tech(proto.name) then Bonus.on_research_event(tech) return end
   if Consolidation.is(proto.name) then
     local removed = storage.consolidation_removed or {}
     local x = table.remove(removed) or Config.consolidation_min()
@@ -89,10 +91,23 @@ Bonus.on_tier_changed = function(force, old_mod, new_mod)
   end
 end
 
--- reset_technology_effects() wipes all script modifiers: restore ours.
-script.on_event(defines.events.on_technology_effects_reset, function(event)
-  Trades.reapply_lab_penalty(event.force)
-  Bonus.reapply(event.force)
+-- Lab speed lives in hidden technologies (scripts/bonus.lua), so reset_technology_effects() keeps it.
+-- force.reset() puts every technology back to level 1: restore ours.
+-- force.reset() also un-researches every technology without raising on_research_reversed (verified): derive the
+-- debt again from what is researched now, so re-researching them does not count twice.
+script.on_event(defines.events.on_force_reset, function(event)
+  Debt.recalculate("recalc-force-reset")
+  Consolidation.update_tiers(event.force)
+  Bonus.sync(event.force)
+end)
+
+-- Merging forces: the source's careful mode goes away with its labs, and its technologies with it.
+script.on_event(defines.events.on_forces_merging, function(event)
+  Trades.on_force_merging(event.source)
+end)
+script.on_event(defines.events.on_forces_merged, function()
+  Debt.recalculate("recalc-forces-merged")
+  Bonus.update()
 end)
 
 script.on_event(defines.events.on_force_created, function()
@@ -127,6 +142,8 @@ script.on_nth_tick(Values.Balance.process_interval, function()
   if math.abs(game.difficulty_settings.technology_price_multiplier - want) > 1e-9 then
     Debt.add(0, "watchdog", "multiplier drifted")
   end
+  Bonus.sync_all() -- puts the hidden lab technologies back if anything else changed them
+
   Gui.tick()
 end)
 
@@ -148,9 +165,19 @@ script.on_configuration_changed(function(data)
     -- Mod added to an existing save: derive debt from what has already been researched.
     local n = Debt.recalculate("recalc-added")
     log(string.format("[research-debt] added to existing save: %d counted technologies, debt=%.4f", n, storage.debt))
+    if math.abs((storage.base_multiplier or 1) - 1) > 1e-9 then
+      -- possibly left over from an earlier install that was removed without /rd-uninstall
+      game.print({ "research-debt.msg-base-not-one", string.format("%.2f", storage.base_multiplier) })
+    end
+  elseif data.mod_startup_settings_changed then
+    -- step, tier scaling, preset or trigger counting changed: every tech's share is different now, so a reversed
+    -- or retired tech would give back a different amount than it added. Derive the research part again.
+    local n = Debt.recalculate("recalc-settings")
+    log(string.format("[research-debt] startup settings changed: %d counted technologies, debt=%.4f", n, storage.debt))
   else
     Debt.apply_multiplier()
   end
+  Bonus.migrate_from_script_modifier()
   Bonus.update()
   Consolidation.update_all_forces()
   -- Prototype set may have changed (archive enabled/disabled, other mods): rebuild registry.
@@ -216,6 +243,34 @@ commands.add_command("rd-reset", { "research-debt.cmd-reset" }, function(cmd)
   reply(cmd, "[Research Debt] reset. " .. status_text())
 end)
 
+-- Before removing the mod: Factorio gives a removed mod no chance to clean up, and the research cost multiplier
+-- is the only thing that would stay behind (lab speed and lab productivity are technology effects of the mod's
+-- own technologies, which the game drops with them; verified). Evolution and retired technologies stay as they are.
+commands.add_command("rd-uninstall", { "research-debt.cmd-uninstall" }, function(cmd)
+  if not is_admin(cmd) then reply(cmd, { "research-debt.admin-only" }) return end
+  if cmd.parameter == "cancel" then
+    if not storage.uninstalled then reply(cmd, { "research-debt.msg-uninstall-not-active" }) return end
+    storage.uninstalled = nil
+    local _, m = Debt.add(0, "uninstall-cancel", nil)
+    game.print({ "research-debt.msg-uninstall-cancelled", string.format("%.2f", m) })
+    return
+  end
+  storage.uninstalled = true
+  local _, m = Debt.add(0, "uninstall", nil)
+  game.print({ "research-debt.msg-uninstall", string.format("%.2f", m) })
+end)
+
+-- Correct the stored base (the map's own multiplier), e.g. when the mod was added to a save that still had a
+-- multiplier from an earlier install.
+commands.add_command("rd-set-base", { "research-debt.cmd-set-base" }, function(cmd)
+  if not is_admin(cmd) then reply(cmd, { "research-debt.admin-only" }) return end
+  local x = tonumber(cmd.parameter)
+  if not x or x < Debt.HARD_MIN or x > Debt.HARD_MAX then reply(cmd, { "research-debt.msg-set-base-usage" }) return end
+  storage.base_multiplier = x
+  Debt.add(0, "set-base", tostring(x))
+  reply(cmd, status_text())
+end)
+
 commands.add_command("rd-gui", { "research-debt.cmd-gui" }, function(cmd)
   if not cmd.player_index then reply(cmd, "[Research Debt] /rd-gui needs a player.") return end
   Gui.toggle(game.get_player(cmd.player_index))
@@ -233,6 +288,7 @@ remote.add_interface("research-debt", {
   new_request = function(item, amount) return Requests.new(item, amount) end,
   expire_request = function() if storage.request then storage.request.expires_tick = game.tick end Requests.tick() return storage.request end,
   recalculate = function() local n = Debt.recalculate("recalc-remote") return n end,
+  uninstalled = function() return storage.uninstalled == true end,
   set_base = function(x)
     storage.base_multiplier = x
     Debt.add(0, "set-base", tostring(x))

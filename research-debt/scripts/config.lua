@@ -35,6 +35,23 @@ Config.Curve = {
   bonus_steps = { { max_debt = 0.0, factor = 1.0 }, { max_debt = 0.5, factor = 0.5 }, { max_debt = 1.0, factor = 0.25 } },
   penalty_steps = { { from_threshold = 0, factor = 1 }, { from_threshold = 2.0, factor = 2 } }, -- threshold, threshold + 2
   milestone_bonus = 0.01,   -- laboratory productivity per Knowledge Consolidation level (native technology effect)
+  lab_unit = 0.005,         -- lab speed per level of the hidden rd-lab-bonus / rd-lab-penalty technologies
+  max_slowdown = 0.75,      -- curve penalty + careful mode together never slow labs by more than this
+}
+
+-- Careful mode (lab speed trade). The data stage builds the hidden rd-careful-mode technology from it.
+Config.Careful = {
+  step = 0.10,      -- lab speed removed per step
+  max_steps = 5,    -- at most 50% slower
+  debt = 0.25,      -- debt cleared per step (less if the debt is smaller)
+}
+
+-- Hidden, script-levelled technologies that carry the lab speed effects, so the game owns the modifier:
+-- finished levels = tech.level - 1. Reset, save/load and reset_technology_effects cannot lose them.
+Config.LabTechs = {
+  bonus = { name = "rd-lab-bonus", modifier = Config.Curve.lab_unit },
+  penalty = { name = "rd-lab-penalty", modifier = -Config.Curve.lab_unit },
+  careful = { name = "rd-careful-mode", modifier = -Config.Careful.step },
 }
 
 function Config.preset_name()

@@ -21,6 +21,12 @@ Ctrl+K window and in the lab GUI.
 In game: the Research Debt window shows every value for your current preset and debt. Outside: the
 README on GitHub has the full tables.
 
+**Can it break my save? How do I get rid of it?**
+It changes the research cost multiplier, lab speed (through hidden technologies) and lab productivity (Knowledge
+Consolidation levels), and, only when you choose to, enemy evolution, retired technologies and items in the archive. To remove it:
+`/rd-uninstall`, save, remove the mod. Without that step the research cost multiplier stays at its last value;
+add the mod again and run it, or `/rd-set-base 1` if you re-added it to such a save.
+
 **Multiplayer / PvP?**
 One global multiplier for everybody. Careful mode, requests and the lab speed curve are per force.
 Untested in real multiplayer so far.

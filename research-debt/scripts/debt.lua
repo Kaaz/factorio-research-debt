@@ -86,6 +86,8 @@ end
 -- Returns clamped multiplier and the unclamped ("raw") one.
 function Debt.compute_multiplier(debt)
   local base = storage.base_multiplier or 1
+  -- /rd-uninstall: research costs the map's own multiplier until the mod is removed (or the uninstall cancelled)
+  if storage.uninstalled then return base, base end
   local raw = base * Debt.factor(debt)
   local min, max = Debt.limits()
   local m = raw

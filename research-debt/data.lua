@@ -46,6 +46,29 @@ for tier, t in ipairs(Consolidation.TIERS) do
   end
 end
 
+-- Lab speed curve and careful mode: hidden technologies whose level the script sets (see scripts/bonus.lua).
+-- The laboratory-speed effect is then applied and kept by the game itself.
+for _, t in pairs(Config.LabTechs) do
+  data:extend({
+    {
+      type = "technology",
+      name = t.name,
+      icons = { { icon = "__base__/graphics/technology/research-speed.png", icon_size = 256 } },
+      localised_name = { "technology-name." .. t.name },
+      localised_description = { "technology-description." .. t.name },
+      effects = { { type = "laboratory-speed", modifier = t.modifier } },
+      unit = { count_formula = "1", ingredients = { { "automation-science-pack", 1 } }, time = 1 },
+      max_level = "infinite",
+      upgrade = true,
+      enabled = false,
+      hidden = true,
+      visible_when_disabled = false,
+      ignore_tech_cost_multiplier = true,
+      order = "zz-rd-lab",
+    },
+  })
+end
+
 -- Phase 3: the Archive (optional via startup setting)
 if settings.startup["rd-enable-archive"].value then
   local tint = { r = 0.55, g = 0.45, b = 0.95, a = 1 }

@@ -1,6 +1,7 @@
 """Phase 2 (Knowledge Consolidation), phase 3 (Archive) and GUI tests."""
 import math
 import time
+from pathlib import Path
 
 CONS = "rd-consolidation-blue"  # tier II, active once chemical science is researched
 
@@ -183,8 +184,20 @@ def gui(env, t):
     print("\n== GUI: not implemented yet ==")
 
 
+def place_lab_and_nest(env, lab=True):
+    """Careful mode needs a lab of the force, lab waste needs an enemy nest on the surface."""
+    env.lua('game.map_settings.enemy_expansion.enabled = false')
+    if lab:
+        env.lua('if game.surfaces[1].count_entities_filtered{name="lab", force="player"} == 0 then '
+                'game.surfaces[1].create_entity{name="lab", position={-20,-20}, force="player"} end')
+    env.lua('local s = game.surfaces[1] if s.count_entities_filtered{type="unit-spawner"} == 0 then '
+            's.request_to_generate_chunks({96,96}, 1) s.force_generate_chunk_requests() '
+            's.create_entity{name="biter-spawner", position={96,96}, force="enemy"} end')
+
+
 def trades(env, t):
     print("\n== Trades: lab speed, evolution, forgetting ==")
+    place_lab_and_nest(env)
     env.lua('remote.call("research-debt","reset")')
     env.lua('remote.call("research-debt","add_debt",2.0,"test")')
 
@@ -380,3 +393,180 @@ def requests(env, t):
     env.lua('remote.call("research-debt","set_setting","rd-request-interval",15)')
     env.lua('storage.__t.destroy{raise_destroy=true}')
     env.lua('remote.call("research-debt","reset")')
+
+
+def labs(env, t):
+    """Careful mode and the lab curve as hidden technologies: boundary cases and the 2.1.2 migration."""
+    import io
+    import subprocess
+    import tarfile
+    print("\n== Lab speed: boundaries, resets, migration ==")
+    env.stop_server()
+    env.write_mod_list(mod_enabled=True)
+    env.install_mod()
+    env.start_server(env.create_save("labs.zip"))
+
+    def debt():
+        return env.status()["debt"]
+
+    def lab():
+        return env.lua_json("game.forces.player.laboratory_speed_modifier")
+
+    def levels():
+        return env.lua_json('(function() local r={} for _,n in ipairs({"rd-lab-bonus","rd-lab-penalty","rd-careful-mode"}) do r[n]=game.forces.player.technologies[n].level-1 end return r end)()')
+
+    # careful mode needs labs of the force's own; lab waste needs enemy nests on that surface
+    env.lua('remote.call("research-debt","add_debt",1.0,"test")')
+    t.check("careful mode refused without labs", env.lua_json('remote.call("research-debt","trade_lab","player")') is False)
+    env.lua('if not game.surfaces["rd-empty"] then game.create_surface("rd-empty") end')
+    empty = env.lua_json('game.surfaces["rd-empty"].index')
+    t.check("lab waste refused on a surface without nests",
+            env.lua_json(f'remote.call("research-debt","trade_evolution","player",{empty})') is False)
+    place_lab_and_nest(env)
+    t.check("lab waste accepted on a surface with a nest", env.lua_json('remote.call("research-debt","trade_evolution","player",1)') is True)
+    env.lua("game.forces.enemy.set_evolution_factor(0, game.surfaces[1])")
+    env.lua('remote.call("research-debt","reset")')
+
+    # the archive leaves samples alone at debt 0 and books only what it really cleared
+    env.lua('storage.__a = game.surfaces[1].create_entity{name="rd-archive", position={-30,-20}, force="player", raise_built=true}')
+    env.lua('storage.__a.get_inventory(defines.inventory.chest).insert{name="processing-unit", count=10}')
+    env.lua('remote.call("research-debt","archive_process_now")')
+    t.check("archive keeps samples at debt 0", env.lua_json('storage.__a.get_inventory(defines.inventory.chest).get_item_count("processing-unit")') == 10)
+    t.approx("archive books nothing at debt 0", env.status()["stats"]["archive_debt"], 0)
+    env.lua('remote.call("research-debt","add_debt",0.01,"test")')
+    env.lua('remote.call("research-debt","archive_process_now")')
+    s = env.status()
+    t.approx("archive books exactly what it cleared (never more than the 0.01 debt)", s["stats"]["archive_debt"], -(0.01 - s["debt"]))
+    env.lua('storage.__a.destroy{raise_destroy=true}')
+    env.lua('remote.call("research-debt","reset")')
+
+    # careful mode clears at most what is left, and undo gives back exactly that
+    env.lua('remote.call("research-debt","add_debt",0.13,"test")')
+    env.lua('remote.call("research-debt","trade_lab","player")')
+    t.approx("careful step at debt 0.13 clears 0.13", debt(), 0)
+    t.check("careful step refused at debt 0", env.lua_json('remote.call("research-debt","trade_lab","player")') is False)
+    env.lua('remote.call("research-debt","trade_lab_undo","player")')
+    t.approx("undo gives back 0.13, not 0.25", debt(), 0.13)
+    t.approx("trade stats back to 0", env.status()["stats"]["trades_debt"], 0)
+    env.lua('remote.call("research-debt","trade_evolution","player",1)')
+    t.approx("evolution trade at debt 0.13 books 0.13", env.status()["stats"]["trades_debt"], -0.13)
+    env.lua("game.forces.enemy.set_evolution_factor(0, game.surfaces[1])")
+    env.lua('remote.call("research-debt","reset")')
+
+    # five steps at a debt in the neutral zone (curve 0): -0.50 carried by rd-careful-mode
+    env.lua('remote.call("research-debt","add_debt",3.0,"test")')
+    for _ in range(5):
+        env.lua('remote.call("research-debt","trade_lab","player")')
+    lv = levels()
+    t.check("rd-careful-mode at level 5, curve techs at 0", lv == {"rd-lab-bonus": 0, "rd-lab-penalty": 0, "rd-careful-mode": 5}, str(lv))
+    t.approx("five careful steps: lab modifier -0.50", lab(), -0.5)
+    t.check("hidden techs stay disabled", env.lua_json('game.forces.player.technologies["rd-careful-mode"].enabled') is False)
+    env.lua("game.forces.player.reset_technology_effects()")
+    t.approx("survives reset_technology_effects", lab(), -0.5)
+    env.lua("game.forces.player.research_all_technologies()")
+    rs = env.lua_json('(function() local m=0 for _,tt in pairs(game.forces.player.technologies) do if tt.researched then for _,e in pairs(tt.prototype.effects) do if e.type=="laboratory-speed" and not tt.name:find("^rd%-") then m=m+e.modifier end end end end return m end)()')
+    applied = env.lua_json('remote.call("research-debt","bonus","player").applied')
+    t.approx("research_all_technologies: techs + curve - 0.50", lab(), rs + applied - 0.5)
+    env.lua("game.forces.player.reset()")
+    t.approx("force.reset(): debt derived again from what is researched (nothing)", debt(), 0)
+    t.approx("survives force.reset()", lab(), env.lua_json('remote.call("research-debt","bonus","player").applied') - 0.5)
+    env.lua('game.forces.player.technologies["rd-careful-mode"].level = 1')
+    time.sleep(2)  # the 60-tick watchdog puts it back
+    t.approx("someone else resetting rd-careful-mode is put back", lab(), env.lua_json('remote.call("research-debt","bonus","player").applied') - 0.5)
+    env.stop_server(save_as="labs2")
+    env.start_server(env.saves / "labs2.zip")
+    t.approx("survives save and reload", lab(), env.lua_json('remote.call("research-debt","bonus","player").applied') - 0.5)
+    for _ in range(5):
+        env.lua('remote.call("research-debt","trade_lab_undo","player")')
+    t.approx("all steps undone: careful level 0", levels()["rd-careful-mode"], 0)
+    t.approx("all steps undone: trade stats 0", env.status()["stats"]["trades_debt"], 0)
+
+    # merging a force gives back what its careful mode cleared
+    env.lua('remote.call("research-debt","reset")')
+    env.lua('remote.call("research-debt","add_debt",2.0,"test")')
+    d0 = debt()
+    env.lua('local b = game.forces["rd-b"] or game.create_force("rd-b") '
+            'game.surfaces[1].create_entity{name="lab", position={-40,-20}, force=b}')
+    env.lua('remote.call("research-debt","trade_lab","rd-b")')
+    env.lua('remote.call("research-debt","trade_lab","rd-b")')
+    t.approx("second force: two careful steps clear 0.50", debt(), d0 - 0.5)
+    env.lua('game.merge_forces("rd-b", "player")')
+    time.sleep(1)  # merging finishes at the end of the tick
+    t.approx("merge: the careful reduction is given back", env.status()["stats"]["trades_debt"], 0)
+    t.check("merge: no careful state left for rd-b", env.lua_json('game.forces["rd-b"] == nil') is True)
+
+    # migration: a 2.1.2 save with careful steps and a curve bonus kept in laboratory_speed_modifier
+    env.stop_server()
+    for old in env.mods.glob("research-debt_*"):
+        import shutil
+        shutil.rmtree(old)
+    blob = subprocess.run(["git", "archive", "57a102e", "research-debt"], cwd=str(Path(__file__).resolve().parent.parent),
+                          capture_output=True, check=True).stdout
+    dst = env.mods / "research-debt_2.1.2"
+    with tarfile.open(fileobj=io.BytesIO(blob)) as tar:
+        for m in tar.getmembers():
+            if m.name.startswith("research-debt/") and m.isfile():
+                out = dst / m.name[len("research-debt/"):]
+                out.parent.mkdir(parents=True, exist_ok=True)
+                out.write_bytes(tar.extractfile(m).read())
+    env.start_server(env.create_save("old.zip"))
+    env.lua('remote.call("research-debt","add_debt",1.55,"test")')
+    for _ in range(5):
+        env.lua('remote.call("research-debt","trade_lab","player")')
+    old_lab = lab()
+    t.approx("2.1.2 save: debt 0.30, curve +0.10, careful -0.50", old_lab, -0.4)
+    env.stop_server(save_as="old")
+    env.install_mod()
+    env.start_server(env.saves / "old.zip")
+    lv = levels()
+    t.check("migrated: rd-lab-bonus 20 levels, careful 5", lv == {"rd-lab-bonus": 20, "rd-lab-penalty": 0, "rd-careful-mode": 5}, str(lv))
+    t.approx("migrated: lab modifier unchanged (-0.40), not doubled", lab(), -0.4)
+    env.lua('remote.call("research-debt","trade_lab_undo","player")')
+    t.approx("migrated: undo gives back 0.25", debt(), 0.55)
+
+
+def uninstall(env, t):
+    """/rd-uninstall, then remove the mod: nothing of it may stay behind. /rd-set-base for a re-added mod."""
+    print("\n== Uninstall and removal ==")
+    env.stop_server()
+    env.write_mod_list(mod_enabled=True)
+    env.install_mod()
+    env.start_server(env.create_save("uninstall.zip"))
+    place_lab_and_nest(env)
+    Q = ('{mult=game.difficulty_settings.technology_price_multiplier, lab=game.forces.player.laboratory_speed_modifier, '
+         'prod=game.forces.player.laboratory_productivity_bonus}')
+    base_lab = env.lua_json("game.forces.player.laboratory_speed_modifier") - env.lua_json('remote.call("research-debt","bonus","player").applied')
+    env.lua('for _,n in ipairs({"logistic-science-pack","automation","logistics"}) do game.forces.player.technologies[n].researched=true end')
+    env.lua('game.forces.player.technologies["rd-consolidation-green"].level = 4')
+    env.lua('remote.call("research-debt","add_debt",3,"test")')
+    for _ in range(3):
+        env.lua('remote.call("research-debt","trade_lab","player")')
+    with_mod = env.lua_json(Q)
+    t.check("before uninstall: multiplier above 1", with_mod["mult"] > 1, str(with_mod))
+
+    env.rcon.command("/rd-uninstall")
+    t.approx("uninstall: multiplier back to base", env.lua_json(Q)["mult"], env.status()["base_multiplier"])
+    time.sleep(2)
+    t.approx("uninstall: watchdog keeps the base", env.lua_json(Q)["mult"], env.status()["base_multiplier"])
+    env.rcon.command("/rd-uninstall cancel")
+    t.approx("uninstall cancel: multiplier back", env.lua_json(Q)["mult"], with_mod["mult"])
+    env.rcon.command("/rd-uninstall")
+    env.stop_server(save_as="uninstall2")
+
+    env.write_mod_list(mod_enabled=False)
+    env.start_server(env.saves / "uninstall2.zip")
+    gone = env.lua_json(Q)
+    t.approx("removed: research cost multiplier 1", gone["mult"], 1)
+    t.approx("removed: no lab speed left from the mod", gone["lab"], base_lab - 0)  # vanilla research-speed techs only
+    t.approx("removed: no lab productivity left from the mod", gone["prod"], 0)
+
+    # without /rd-uninstall the multiplier would stay; a re-added mod then warns and /rd-set-base fixes the base
+    env.lua("game.difficulty_settings.technology_price_multiplier = 3")
+    env.stop_server(save_as="uninstall3")
+    env.write_mod_list(mod_enabled=True)
+    env.start_server(env.saves / "uninstall3.zip")
+    s = env.status()
+    t.approx("re-added to a x3 save: base taken as 3", s["base_multiplier"], 3)
+    env.rcon.command("/rd-set-base 1")
+    s = env.status()
+    t.approx("/rd-set-base 1: multiplier = 1 + debt", s["actual_multiplier"], 1 + s["debt"])

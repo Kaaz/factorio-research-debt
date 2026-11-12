@@ -108,8 +108,19 @@ All the numbers live in `scripts/config.lua` (presets), `settings.lua` (Custom),
 /rd-status            debt, base, multiplier, limits, counters
 /rd-recalc            (admin) recount researched technologies and archives
 /rd-reset             (admin) debt to zero, trades undone
+/rd-uninstall         (admin) run before removing the mod: research costs back to the map's own multiplier
+/rd-uninstall cancel  (admin) keep using the mod after all
+/rd-set-base <x>      (admin) set the map's own multiplier the debt is added to (e.g. 1)
 /rd-gui               open/close the window
 ```
+
+### Removing the mod
+
+Run `/rd-uninstall` first, save, then remove the mod. Factorio doesn't let a removed mod clean up, and the
+research cost multiplier is the only thing that would stay behind. Lab speed and lab productivity come from
+the mod's own (hidden) technologies and disappear with them. Evolution you raised and technologies you
+retired stay as they are. Forgot? Add the mod again, `/rd-uninstall`, save, remove. If you re-add it to a
+save that still has an old multiplier, it warns you; `/rd-set-base 1` fixes the base.
 
 For mod authors there's `remote.call("research-debt", ...)` with `status()`, `add_debt(x, reason)`,
 `reset()`, `recalculate()`, `set_base(x)`, `counts(tech)`, `step_for(tech)`, `history()`,
